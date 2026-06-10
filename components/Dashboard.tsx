@@ -10,6 +10,7 @@ import ProductivityRing from "./ProductivityRing";
 import NonBillableChart from "./NonBillableChart";
 import OverBudgetList from "./OverBudgetList";
 import SleepingList from "./SleepingList";
+import MonthCompare, { type MonthSlot } from "./MonthCompare";
 
 interface DashboardData {
   users: MocoUser[];
@@ -17,7 +18,6 @@ interface DashboardData {
   productivityDelta: number;
   nonBillable: NonBillableProject[];
   overBudget: OverBudgetProject[];
-  sleeping: SleepingProject[];
 }
 
 interface Props {
@@ -29,6 +29,8 @@ const MONTHS = [
   "Juli","August","September","Oktober","November","Dezember",
 ];
 
+const monthLabel = (y: number, m: number) => `${MONTHS[m - 1]} ${y}`;
+
 export default function Dashboard({ onSettingsChange }: Props) {
   const now = new Date();
   const [users, setUsers] = useState<MocoUser[]>([]);
@@ -39,6 +41,18 @@ export default function Dashboard({ onSettingsChange }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  // Schläferprojekte: lazy nachgeladen
+  const [sleeping, setSleeping] = useState<SleepingProject[] | null>(null);
+
+  // Monatsvergleich
+  const prevDefault = month === 1 ? { y: year - 1, m: 12 } : { y: year, m: month - 1 };
+  const [compare, setCompare] = useState(false);
+  const [cmpYear, setCmpYear] = useState(prevDefault.y);
+  const [cmpMonth, setCmpMonth] = useState(prevDefault.m);
+  const [cmpData, setCmpData] = useState<{ a: MonthSlot; b: MonthSlot } | null>(null);
+  const [cmpLoading, setCmpLoading] = useState(false);
+
+  // Mitarbeiter + Standardauswahl (eigene Person via Setup-Benutzername)
   useEffect(() => {
     Promise.all([
       fetch("/api/users").then((r) => r.json()) as Promise<MocoUser[]>,
@@ -51,16 +65,11 @@ export default function Dashboard({ onSettingsChange }: Props) {
         const active = list.filter((u) => u.active);
         setUsers(active);
         if (active.length === 0) return;
-        // Standardmäßig die im Setup hinterlegte Person auswählen
         const wanted = username.trim().toLowerCase();
         const me = wanted
           ? active.find((u) => {
               const full = `${u.firstname} ${u.lastname}`.toLowerCase();
-              return (
-                full === wanted ||
-                u.email?.toLowerCase() === wanted ||
-                full.includes(wanted)
-              );
+              return full === wanted || u.email?.toLowerCase() === wanted || full.includes(wanted);
             })
           : undefined;
         setSelectedUserId((me ?? active[0]).id);
@@ -72,6 +81,7 @@ export default function Dashboard({ onSettingsChange }: Props) {
     if (!selectedUserId) return;
     setLoading(true);
     setError("");
+    setSleeping(null);
     fetch(`/api/dashboard?userId=${selectedUserId}&year=${year}&month=${month}`)
       .then((r) => r.json())
       .then((d: DashboardData & { error?: string }) => {
@@ -84,17 +94,52 @@ export default function Dashboard({ onSettingsChange }: Props) {
 
   useEffect(() => { loadDashboard(); }, [loadDashboard]);
 
+  // Schläferprojekte separat laden (global, unabhängig von User/Monat)
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/sleeping")
+      .then((r) => r.json())
+      .then((d: { sleeping?: SleepingProject[] }) => {
+        if (!cancelled) setSleeping(d.sleeping ?? []);
+      })
+      .catch(() => {
+        if (!cancelled) setSleeping([]);
+      });
+    return () => { cancelled = true; };
+  }, []);
+
+  // Vergleichsdaten laden
+  useEffect(() => {
+    if (!compare || !selectedUserId) { setCmpData(null); return; }
+    setCmpLoading(true);
+    let cancelled = false;
+    const fetchMonth = (y: number, m: number) =>
+      fetch(`/api/month?userId=${selectedUserId}&year=${y}&month=${m}`)
+        .then((r) => r.json()) as Promise<{ productivity: ProductivityResult; error?: string }>;
+    Promise.all([fetchMonth(year, month), fetchMonth(cmpYear, cmpMonth)])
+      .then(([a, b]) => {
+        if (cancelled || a.error || b.error) return;
+        setCmpData({
+          a: { label: monthLabel(year, month), productivity: a.productivity },
+          b: { label: monthLabel(cmpYear, cmpMonth), productivity: b.productivity },
+        });
+      })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setCmpLoading(false); });
+    return () => { cancelled = true; };
+  }, [compare, selectedUserId, year, month, cmpYear, cmpMonth]);
+
   const selectedUser = users.find((u) => u.id === selectedUserId);
 
-  const yearOptions = [];
-  for (let y = now.getFullYear(); y >= now.getFullYear() - 2; y--) yearOptions.push(y);
+  const yearOptions: number[] = [];
+  for (let y = now.getFullYear(); y >= now.getFullYear() - 3; y--) yearOptions.push(y);
 
   return (
     <div style={{ position: "relative", minHeight: "100vh" }}>
       <div style={{ position: "relative", zIndex: 1, maxWidth: 1180, margin: "0 auto", padding: "36px 24px 80px" }}>
 
         {/* Header */}
-        <header style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", flexWrap: "wrap", gap: 20, marginBottom: 34 }}>
+        <header style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", flexWrap: "wrap", gap: 20, marginBottom: 18 }}>
           <div>
             <h1
               style={{
@@ -117,48 +162,61 @@ export default function Dashboard({ onSettingsChange }: Props) {
             </p>
           </div>
 
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
-            {/* User chips */}
-            {users.map((u) => (
-              <button
-                key={u.id}
-                onClick={() => setSelectedUserId(u.id)}
-                className={`chip ${selectedUserId === u.id ? "active" : ""}`}
-              >
-                {selectedUserId === u.id && <span className="dot" />}
-                {u.firstname} {u.lastname}
-              </button>
-            ))}
-
-            {/* Month selector */}
-            <select
-              value={month}
-              onChange={(e) => setMonth(Number(e.target.value))}
-              className="chip"
-              style={{ appearance: "none", cursor: "pointer" }}
-            >
-              {MONTHS.map((m, i) => (
-                <option key={i} value={i + 1}>{m}</option>
-              ))}
-            </select>
-
-            {/* Year selector */}
-            <select
-              value={year}
-              onChange={(e) => setYear(Number(e.target.value))}
-              className="chip"
-              style={{ appearance: "none", cursor: "pointer" }}
-            >
-              {yearOptions.map((y) => (
-                <option key={y} value={y}>{y}</option>
-              ))}
-            </select>
-
-            <button onClick={onSettingsChange} className="chip" aria-label="Settings" style={{ fontSize: "0.85rem" }}>
-              ⚙️
-            </button>
-          </div>
+          <button onClick={onSettingsChange} className="chip" aria-label="Einstellungen" style={{ fontSize: "0.95rem" }}>
+            ⚙️
+          </button>
         </header>
+
+        {/* Steuerleiste */}
+        <div className="card" style={{ display: "flex", flexWrap: "wrap", alignItems: "flex-end", gap: 14, marginBottom: 22, padding: "16px 18px" }}>
+          <Field label="Mitarbeiter">
+            <select
+              value={selectedUserId ?? ""}
+              onChange={(e) => setSelectedUserId(Number(e.target.value))}
+              className="select"
+            >
+              {users.map((u) => (
+                <option key={u.id} value={u.id}>{u.firstname} {u.lastname}</option>
+              ))}
+            </select>
+          </Field>
+
+          <Field label="Monat">
+            <select value={month} onChange={(e) => setMonth(Number(e.target.value))} className="select">
+              {MONTHS.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
+            </select>
+          </Field>
+
+          <Field label="Jahr">
+            <select value={year} onChange={(e) => setYear(Number(e.target.value))} className="select">
+              {yearOptions.map((y) => <option key={y} value={y}>{y}</option>)}
+            </select>
+          </Field>
+
+          <button
+            onClick={() => setCompare((c) => !c)}
+            className={`chip ${compare ? "active" : ""}`}
+            style={{ height: 44 }}
+          >
+            {compare ? "✓ " : "⚖️ "}Vergleichen
+          </button>
+
+          {compare && (
+            <>
+              <span style={{ alignSelf: "center", fontWeight: 700, color: "var(--plum-soft)" }}>vs.</span>
+              <Field label="Vergleichsmonat">
+                <select value={cmpMonth} onChange={(e) => setCmpMonth(Number(e.target.value))} className="select">
+                  {MONTHS.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
+                </select>
+              </Field>
+              <Field label="Jahr">
+                <select value={cmpYear} onChange={(e) => setCmpYear(Number(e.target.value))} className="select">
+                  {yearOptions.map((y) => <option key={y} value={y}>{y}</option>)}
+                </select>
+              </Field>
+            </>
+          )}
+        </div>
 
         {/* Error */}
         {error && (
@@ -176,9 +234,21 @@ export default function Dashboard({ onSettingsChange }: Props) {
           </div>
         )}
 
-        {/* Dashboard grid */}
+        {/* Dashboard */}
         {!loading && data && selectedUser && (
           <>
+            {compare && (
+              cmpData ? (
+                <div style={{ marginBottom: 22 }}>
+                  <MonthCompare a={cmpData.a} b={cmpData.b} />
+                </div>
+              ) : (
+                <div className="card" style={{ marginBottom: 22, textAlign: "center", color: "var(--hotpink)", fontWeight: 600 }}>
+                  {cmpLoading ? "Vergleich wird geladen… 💫" : "Vergleich nicht verfügbar."}
+                </div>
+              )
+            )}
+
             {/* Top row */}
             <div style={{ display: "grid", gridTemplateColumns: "1.15fr 1fr", gap: 22 }} className="responsive-grid">
               <ProductivityRing
@@ -194,7 +264,13 @@ export default function Dashboard({ onSettingsChange }: Props) {
             {/* Bottom row */}
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 22, marginTop: 22 }} className="responsive-grid">
               <OverBudgetList projects={data.overBudget} />
-              <SleepingList projects={data.sleeping} />
+              {sleeping === null ? (
+                <div className="card" style={{ display: "flex", alignItems: "center", justifyContent: "center", color: "var(--plum-soft)", fontWeight: 600, minHeight: 160 }}>
+                  <span className="animate-pulse">😴 Schläferprojekte werden gesucht…</span>
+                </div>
+              ) : (
+                <SleepingList projects={sleeping} />
+              )}
             </div>
           </>
         )}
@@ -214,7 +290,32 @@ export default function Dashboard({ onSettingsChange }: Props) {
         @media (max-width: 820px) {
           .responsive-grid { grid-template-columns: 1fr !important; }
         }
+        .select {
+          appearance: none;
+          cursor: pointer;
+          border-radius: 14px;
+          border: 1.5px solid #ffc4e3;
+          background: rgba(255,255,255,.75);
+          color: var(--plum);
+          font-family: Quicksand, sans-serif;
+          font-weight: 700;
+          padding: 11px 16px;
+          outline: none;
+          min-width: 130px;
+        }
+        .select:focus { border-color: var(--hotpink); }
       `}</style>
     </div>
+  );
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <label style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+      <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: ".04em", textTransform: "uppercase", color: "var(--plum-soft)", fontFamily: "Fredoka, sans-serif" }}>
+        {label}
+      </span>
+      {children}
+    </label>
   );
 }

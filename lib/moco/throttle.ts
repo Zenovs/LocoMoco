@@ -1,25 +1,38 @@
-// ~1 req/sec, max 120/2min — simple token-bucket-lite queue
-const INTERVAL_MS = 1050;
+// Token-Bucket-Limiter mit begrenzter Parallelität.
+// Erlaubt einen anfänglichen Burst (damit viele Seiten nicht streng seriell mit
+// 1/s laufen) und pendelt sich langfristig auf ~1 Request/Sekunde ein — bleibt
+// damit innerhalb des MOCO-Limits. 429-Antworten werden respektiert und neu
+// eingereiht.
+const REFILL_MS = 1050; // 1 Token pro ~1.05s -> langfristig ~57/min
+const BUCKET_CAPACITY = 40; // Burst bis 40 Requests
+const MAX_CONCURRENT = 4;
 
-let lastCallAt = 0;
-let queue: Array<() => void> = [];
-let draining = false;
+let tokens = BUCKET_CAPACITY;
+let lastRefill = Date.now();
+let inFlight = 0;
+const queue: Array<() => void> = [];
 
-function drain() {
-  if (queue.length === 0) {
-    draining = false;
-    return;
-  }
+function refill() {
   const now = Date.now();
-  const wait = Math.max(0, lastCallAt + INTERVAL_MS - now);
-  setTimeout(() => {
-    const next = queue.shift();
-    if (next) {
-      lastCallAt = Date.now();
-      next();
-    }
-    drain();
-  }, wait);
+  const add = Math.floor((now - lastRefill) / REFILL_MS);
+  if (add > 0) {
+    tokens = Math.min(BUCKET_CAPACITY, tokens + add);
+    lastRefill = now;
+  }
+}
+
+function pump() {
+  refill();
+  while (queue.length > 0 && inFlight < MAX_CONCURRENT && tokens > 0) {
+    tokens--;
+    inFlight++;
+    const run = queue.shift()!;
+    run();
+  }
+  if (queue.length > 0) {
+    // Nochmal versuchen, sobald wieder Tokens/Slots frei sein könnten
+    setTimeout(pump, REFILL_MS);
+  }
 }
 
 export function throttledFetch(
@@ -27,26 +40,28 @@ export function throttledFetch(
   init?: RequestInit
 ): Promise<Response> {
   return new Promise((resolve, reject) => {
-    queue.push(() => {
+    const attempt = () => {
       fetch(url, init)
         .then(async (res) => {
           if (res.status === 429) {
             const retryAfter = Number(res.headers.get("Retry-After") ?? 2);
             await new Promise((r) => setTimeout(r, retryAfter * 1000));
-            // re-queue
-            queue.unshift(() => {
-              lastCallAt = Date.now();
-              fetch(url, init).then(resolve).catch(reject);
-            });
+            inFlight--;
+            queue.unshift(attempt); // erneut versuchen
+            pump();
           } else {
+            inFlight--;
+            pump();
             resolve(res);
           }
         })
-        .catch(reject);
-    });
-    if (!draining) {
-      draining = true;
-      drain();
-    }
+        .catch((err) => {
+          inFlight--;
+          pump();
+          reject(err);
+        });
+    };
+    queue.push(attempt);
+    pump();
   });
 }

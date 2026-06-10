@@ -10,8 +10,7 @@ import {
 import { calcProductivity } from "@/lib/metrics/productivity";
 import { calcTopNonBillableProjects } from "@/lib/metrics/nonBillable";
 import { calcOverBudgetProjects } from "@/lib/metrics/overBudget";
-import { calcSleepingProjects } from "@/lib/metrics/sleeping";
-import { addMonths, getMonthRange, subtractDays, toISODate } from "@/lib/metrics/dates";
+import { addMonths, getMonthRange } from "@/lib/metrics/dates";
 import type { MocoProjectReport } from "@/types/moco";
 
 export async function GET(req: NextRequest) {
@@ -92,19 +91,14 @@ export async function GET(req: NextRequest) {
       true
     );
 
-    // --- Metric 4: Sleeping projects (global) ---
-    const sleepingFrom = toISODate(subtractDays(new Date(), 65));
-    const sleepingTo = toISODate(new Date());
-    const recentActivities = await getActivities(config, sleepingFrom, sleepingTo);
-    const sleeping = calcSleepingProjects(recentActivities, projects);
-
+    // Metrik 4 (Schläferprojekte) wird separat über /api/sleeping geladen —
+    // sie ist global und am teuersten (65 Tage), daher nicht im kritischen Pfad.
     return NextResponse.json({
       users,
       productivity,
       productivityDelta,
       nonBillable,
       overBudget,
-      sleeping,
     });
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Unbekannter Fehler.";
