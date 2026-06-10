@@ -4,7 +4,6 @@ set -euo pipefail
 REPO_URL="https://github.com/Zenovs/LocoMoco.git"
 INSTALL_DIR="$HOME/.loco-moco/app"
 LAUNCHER_DIR="$HOME/Applications"
-LAUNCHER="$LAUNCHER_DIR/Loco Moco.command"
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 green()  { printf '\033[0;32m%s\033[0m\n' "$*"; }
@@ -135,25 +134,57 @@ pnpm --dir "$INSTALL_DIR" install --frozen-lockfile
 step "App bauen"
 pnpm --dir "$INSTALL_DIR" build
 
-# ── Launcher anlegen ─────────────────────────────────────────────────────────
-step "Launcher anlegen"
+# ── App-Bundle anlegen ───────────────────────────────────────────────────────
+step "App-Icon anlegen"
 mkdir -p "$LAUNCHER_DIR"
 
-# NVM_DIR im Launcher fest eintragen, da .command-Dateien keine Shell-Profile laden
-cat >"$LAUNCHER" <<LAUNCHER_CONTENT
+APP="$LAUNCHER_DIR/Loco Moco.app"
+# Alte .command-Datei (frühere Versionen) entfernen
+rm -rf "$LAUNCHER_DIR/Loco Moco.command"
+rm -rf "$APP"
+mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
+
+# Girly-Icon aus dem Repo übernehmen (vorgerendert, kein Build nötig)
+cp "$INSTALL_DIR/assets/AppIcon.icns" "$APP/Contents/Resources/AppIcon.icns"
+
+cat >"$APP/Contents/Info.plist" <<'PLIST'
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>CFBundleName</key>            <string>Loco Moco</string>
+  <key>CFBundleDisplayName</key>     <string>Loco Moco</string>
+  <key>CFBundleIdentifier</key>      <string>ch.zenovs.locomoco</string>
+  <key>CFBundleVersion</key>         <string>1.0</string>
+  <key>CFBundleShortVersionString</key><string>1.0</string>
+  <key>CFBundlePackageType</key>     <string>APPL</string>
+  <key>CFBundleExecutable</key>      <string>locomoco</string>
+  <key>CFBundleIconFile</key>        <string>AppIcon</string>
+  <key>LSMinimumSystemVersion</key>  <string>11.0</string>
+  <key>NSHighResolutionCapable</key> <true/>
+</dict>
+</plist>
+PLIST
+
+# Executable: öffnet Terminal mit start.sh (sichtbare Logs, Auto-Update, Ctrl+C)
+cat >"$APP/Contents/MacOS/locomoco" <<'LAUNCH'
 #!/usr/bin/env bash
-export NVM_DIR="\$HOME/.nvm"
-[ -s "\$NVM_DIR/nvm.sh" ] && source "\$NVM_DIR/nvm.sh"
-nvm use 22 --silent 2>/dev/null || true
-exec "\$HOME/.loco-moco/app/scripts/start.sh"
-LAUNCHER_CONTENT
+START="$HOME/.loco-moco/app/scripts/start.sh"
+osascript <<OSA
+tell application "Terminal"
+  activate
+  do script "bash \"$START\""
+end tell
+OSA
+LAUNCH
+chmod +x "$APP/Contents/MacOS/locomoco"
 
-chmod +x "$LAUNCHER"
+# Icon-Cache anstupsen & Quarantäne/Gatekeeper-Dialog vermeiden
+touch "$APP"
+xattr -dr com.apple.quarantine "$APP" 2>/dev/null || true
+/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/LaunchServices.framework/Versions/A/Support/lsregister -f "$APP" 2>/dev/null || true
 
-# macOS: Quarantine-Flag entfernen damit kein Gatekeeper-Dialog kommt
-xattr -d com.apple.quarantine "$LAUNCHER" 2>/dev/null || true
-
-green "Launcher angelegt: $LAUNCHER"
+green "App angelegt: $APP"
 
 # ── Fertig ────────────────────────────────────────────────────────────────────
 echo ""
@@ -162,7 +193,8 @@ green "  ✅  Loco Moco erfolgreich installiert!"
 green "════════════════════════════════════════"
 echo ""
 echo "  Starten:"
-echo "    • Doppelklick auf:  ~/Applications/Loco Moco.command"
+echo "    • Im Launchpad/Spotlight nach 'Loco Moco' suchen, oder"
+echo "    • Doppelklick auf:  ~/Applications/Loco Moco.app"
 echo "    • Oder im Terminal: bash ~/.loco-moco/app/scripts/start.sh"
 echo ""
 yellow "  Tipp: Beim ersten Start öffnet sich ein Setup-Screen."

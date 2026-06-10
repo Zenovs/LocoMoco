@@ -31,7 +31,7 @@ bash ~/.loco-moco/app/scripts/install.sh
 
 ## Starten
 
-Nach der Installation einfach Doppelklick auf **`~/Applications/Loco Moco.command`** — oder im Terminal:
+Nach der Installation erscheint **Loco Moco** mit eigenem Icon in Launchpad/Spotlight und im Ordner `~/Applications`. Einfach starten — oder im Terminal:
 
 ```bash
 bash ~/.loco-moco/app/scripts/start.sh
