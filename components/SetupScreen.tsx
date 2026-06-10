@@ -1,16 +1,45 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 interface Props {
   onSuccess: () => void;
 }
 
+const labelStyle: React.CSSProperties = {
+  color: "var(--plum-soft)",
+  fontFamily: "Fredoka, sans-serif",
+};
+
+const inputStyle: React.CSSProperties = {
+  borderRadius: "16px",
+  border: "1.5px solid #ffc4e3",
+  background: "rgba(255,255,255,.7)",
+  color: "var(--plum)",
+  fontFamily: "Quicksand, sans-serif",
+};
+
 export default function SetupScreen({ onSuccess }: Props) {
-  const [subdomain, setSubdomain] = useState("");
+  const [url, setUrl] = useState("");
+  const [username, setUsername] = useState("");
   const [apiKey, setApiKey] = useState("");
+  const [reconfigure, setReconfigure] = useState(false);
   const [status, setStatus] = useState<"idle" | "loading" | "error" | "ok">("idle");
   const [error, setError] = useState("");
+
+  // Bestehende Einstellungen vorbefüllen (wenn als Einstellungen geöffnet)
+  useEffect(() => {
+    fetch("/api/config")
+      .then((r) => r.json())
+      .then((d: { configured: boolean; subdomain?: string; username?: string }) => {
+        if (d.configured) {
+          setReconfigure(true);
+          if (d.subdomain) setUrl(`https://${d.subdomain}.mocoapp.com`);
+          if (d.username) setUsername(d.username);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -20,7 +49,7 @@ export default function SetupScreen({ onSuccess }: Props) {
       const res = await fetch("/api/config", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ subdomain, apiKey }),
+        body: JSON.stringify({ url, username, apiKey }),
       });
       const data = (await res.json()) as { ok?: boolean; error?: string };
       if (!res.ok) {
@@ -59,52 +88,59 @@ export default function SetupScreen({ onSuccess }: Props) {
             Loco Moco
           </h1>
           <p style={{ color: "var(--plum-soft)", fontWeight: 600 }}>
-            deine Zeiterfassung, aber <span style={{ color: "var(--hotpink)" }}>fabelhaft</span> ✨
+            {reconfigure ? (
+              <>deine <span style={{ color: "var(--hotpink)" }}>Einstellungen</span> ✨</>
+            ) : (
+              <>deine Zeiterfassung, aber <span style={{ color: "var(--hotpink)" }}>fabelhaft</span> ✨</>
+            )}
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+          {/* MOCO URL */}
           <div>
-            <label
-              htmlFor="subdomain"
-              className="block text-sm font-semibold mb-1.5"
-              style={{ color: "var(--plum-soft)", fontFamily: "Fredoka, sans-serif" }}
-            >
-              Subdomain
+            <label htmlFor="url" className="block text-sm font-semibold mb-1.5" style={labelStyle}>
+              MOCO-URL
             </label>
-            <div
-              className="flex items-center overflow-hidden"
-              style={{
-                borderRadius: "16px",
-                border: "1.5px solid #ffc4e3",
-                background: "rgba(255,255,255,.7)",
-              }}
-            >
-              <input
-                id="subdomain"
-                type="text"
-                value={subdomain}
-                onChange={(e) => setSubdomain(e.target.value)}
-                placeholder="schnyder"
-                required
-                className="flex-1 px-4 py-3 outline-none font-semibold"
-                style={{ background: "transparent", color: "var(--plum)", fontFamily: "Quicksand, sans-serif" }}
-              />
-              <span
-                className="px-4 py-3 text-sm font-bold whitespace-nowrap"
-                style={{ background: "#ffe3f1", color: "var(--hotpink)" }}
-              >
-                .mocoapp.com
-              </span>
-            </div>
+            <input
+              id="url"
+              type="text"
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              placeholder="https://schnyder.mocoapp.com"
+              required
+              autoComplete="off"
+              className="w-full px-4 py-3 font-semibold outline-none"
+              style={inputStyle}
+            />
+            <p className="text-xs mt-1" style={{ color: "var(--plum-soft)" }}>
+              Volle Adresse oder nur die Subdomain (z. B. <b>schnyder</b>).
+            </p>
           </div>
 
+          {/* Benutzername */}
           <div>
-            <label
-              htmlFor="apiKey"
-              className="block text-sm font-semibold mb-1.5"
-              style={{ color: "var(--plum-soft)", fontFamily: "Fredoka, sans-serif" }}
-            >
+            <label htmlFor="username" className="block text-sm font-semibold mb-1.5" style={labelStyle}>
+              Benutzername
+            </label>
+            <input
+              id="username"
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="Vorname Nachname (dein MOCO-Login)"
+              autoComplete="off"
+              className="w-full px-4 py-3 font-semibold outline-none"
+              style={inputStyle}
+            />
+            <p className="text-xs mt-1" style={{ color: "var(--plum-soft)" }}>
+              Wird genutzt, um dein Dashboard standardmäßig auf dich zu setzen.
+            </p>
+          </div>
+
+          {/* API-Key */}
+          <div>
+            <label htmlFor="apiKey" className="block text-sm font-semibold mb-1.5" style={labelStyle}>
               API-Key
             </label>
             <input
@@ -112,16 +148,11 @@ export default function SetupScreen({ onSuccess }: Props) {
               type="password"
               value={apiKey}
               onChange={(e) => setApiKey(e.target.value)}
-              placeholder="Aus MOCO → Profil → Integrations"
-              required
+              placeholder={reconfigure ? "Leer lassen = unverändert" : "Aus MOCO → Profil → Integrations"}
+              required={!reconfigure}
+              autoComplete="off"
               className="w-full px-4 py-3 font-semibold outline-none"
-              style={{
-                borderRadius: "16px",
-                border: "1.5px solid #ffc4e3",
-                background: "rgba(255,255,255,.7)",
-                color: "var(--plum)",
-                fontFamily: "Quicksand, sans-serif",
-              }}
+              style={inputStyle}
             />
           </div>
 
@@ -139,7 +170,7 @@ export default function SetupScreen({ onSuccess }: Props) {
               className="rounded-2xl px-4 py-3 text-sm font-semibold"
               style={{ background: "rgba(0,200,100,.08)", color: "#0a7c3e", border: "1.5px solid rgba(0,200,100,.2)" }}
             >
-              Verbunden ✅
+              Gespeichert ✅
             </div>
           )}
 
@@ -155,7 +186,11 @@ export default function SetupScreen({ onSuccess }: Props) {
               boxShadow: "0 8px 28px -6px rgba(255,46,149,.55)",
             }}
           >
-            {status === "loading" ? "Verbinde…" : "Los geht's 💖"}
+            {status === "loading"
+              ? "Verbinde…"
+              : reconfigure
+              ? "Speichern 💖"
+              : "Los geht's 💖"}
           </button>
         </form>
       </div>

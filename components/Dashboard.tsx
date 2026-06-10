@@ -40,12 +40,30 @@ export default function Dashboard({ onSettingsChange }: Props) {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    fetch("/api/users")
-      .then((r) => r.json())
-      .then((list: MocoUser[]) => {
+    Promise.all([
+      fetch("/api/users").then((r) => r.json()) as Promise<MocoUser[]>,
+      fetch("/api/config")
+        .then((r) => r.json())
+        .then((c: { username?: string }) => c.username ?? "")
+        .catch(() => ""),
+    ])
+      .then(([list, username]) => {
         const active = list.filter((u) => u.active);
         setUsers(active);
-        if (active.length > 0) setSelectedUserId(active[0].id);
+        if (active.length === 0) return;
+        // Standardmäßig die im Setup hinterlegte Person auswählen
+        const wanted = username.trim().toLowerCase();
+        const me = wanted
+          ? active.find((u) => {
+              const full = `${u.firstname} ${u.lastname}`.toLowerCase();
+              return (
+                full === wanted ||
+                u.email?.toLowerCase() === wanted ||
+                full.includes(wanted)
+              );
+            })
+          : undefined;
+        setSelectedUserId((me ?? active[0]).id);
       })
       .catch(() => setError("Mitarbeiter konnten nicht geladen werden."));
   }, []);

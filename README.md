@@ -1,7 +1,9 @@
 # 🍳 Loco Moco ✨
 
 Ein verspieltes Analytics-Dashboard für dein [MOCO](https://www.mocoapp.com)-Zeiterfassungstool.
-Läuft lokal auf `http://localhost:4577`, zieht bei jedem Start automatisch Updates von GitHub.
+Läuft als **eigenständige Mac-App** in ihrem eigenen Fenster (kein Browser nötig) — der lokale
+Server auf `http://localhost:4577` läuft dabei still im Hintergrund und zieht bei jedem Start
+automatisch Updates von GitHub.
 
 ## Einmalige Installation
 
@@ -37,14 +39,19 @@ Nach der Installation erscheint **Loco Moco** mit eigenem Icon in Launchpad/Spot
 bash ~/.loco-moco/app/scripts/start.sh
 ```
 
-Der Browser öffnet sich automatisch auf `http://localhost:4577`.
+Das Loco-Moco-Fenster öffnet sich automatisch.
 
 ## Erster Start
 
-Beim ersten Aufruf erscheint ein Setup-Screen. Du brauchst:
+Beim ersten Aufruf erscheint ein Setup-Screen (später jederzeit über das ⚙️ oben rechts erreichbar).
+Du brauchst:
 
-- **Subdomain** — der Teil vor `.mocoapp.com` (z. B. `schnyder` für `schnyder.mocoapp.com`)
+- **MOCO-URL** — die volle Adresse (z. B. `https://schnyder.mocoapp.com`) oder nur die Subdomain (`schnyder`)
+- **Benutzername** — dein MOCO-Login (Vorname Nachname); damit wird das Dashboard standardmäßig auf dich gesetzt
 - **API-Key** — in MOCO unter **Profil → Integrations → API-Key**
+
+> MOCO authentifiziert allein über den API-Key (`Authorization: Token …`). Der Benutzername ist
+> kein Auth-Faktor, sondern legt nur fest, wessen Zahlen beim Start angezeigt werden.
 
 Die Credentials werden lokal in `~/.loco-moco/config.json` (Mode 600) gespeichert — nie im Repo.
 

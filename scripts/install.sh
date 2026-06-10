@@ -139,8 +139,8 @@ pnpm --dir "$INSTALL_DIR" install --frozen-lockfile
 step "App bauen"
 pnpm --dir "$INSTALL_DIR" build
 
-# ── App-Bundle anlegen ───────────────────────────────────────────────────────
-step "App-Icon anlegen"
+# ── Native App bauen ─────────────────────────────────────────────────────────
+step "Standalone-App bauen"
 mkdir -p "$LAUNCHER_DIR"
 
 APP="$LAUNCHER_DIR/Loco Moco.app"
@@ -149,7 +149,7 @@ rm -rf "$HOME/Applications/Loco Moco.command" "/Applications/Loco Moco.command"
 rm -rf "$HOME/Applications/Loco Moco.app" "/Applications/Loco Moco.app"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 
-# Girly-Icon aus dem Repo übernehmen (vorgerendert, kein Build nötig)
+# Girly-Icon aus dem Repo übernehmen (vorgerendert)
 cp "$INSTALL_DIR/assets/AppIcon.icns" "$APP/Contents/Resources/AppIcon.icns"
 
 cat >"$APP/Contents/Info.plist" <<'PLIST'
@@ -167,24 +167,31 @@ cat >"$APP/Contents/Info.plist" <<'PLIST'
   <key>CFBundleIconFile</key>        <string>AppIcon</string>
   <key>LSMinimumSystemVersion</key>  <string>11.0</string>
   <key>NSHighResolutionCapable</key> <true/>
+  <key>NSAppTransportSecurity</key>
+  <dict><key>NSAllowsLocalNetworking</key><true/></dict>
 </dict>
 </plist>
 PLIST
 
-# Executable: öffnet Terminal mit start.sh (sichtbare Logs, Auto-Update, Ctrl+C)
-cat >"$APP/Contents/MacOS/locomoco" <<'LAUNCH'
+# Native Cocoa-App kompilieren (eigenes Fenster, kein Browser/Terminal).
+# Fällt auf einen Terminal-Launcher zurück, falls swiftc nicht verfügbar ist.
+if command -v swiftc &>/dev/null && \
+   swiftc -O -framework Cocoa -framework WebKit \
+          -o "$APP/Contents/MacOS/locomoco" \
+          "$INSTALL_DIR/scripts/LocoMocoApp.swift" 2>/dev/null; then
+  green "Native App kompiliert."
+else
+  yellow "swiftc nicht verfügbar — nutze Terminal-Launcher als Fallback."
+  cat >"$APP/Contents/MacOS/locomoco" <<'LAUNCH'
 #!/usr/bin/env bash
-START="$HOME/.loco-moco/app/scripts/start.sh"
-osascript <<OSA
-tell application "Terminal"
-  activate
-  do script "bash \"$START\""
-end tell
-OSA
+osascript -e 'tell application "Terminal" to activate' \
+          -e "tell application \"Terminal\" to do script \"bash '$HOME/.loco-moco/app/scripts/start.sh'\""
 LAUNCH
+fi
 chmod +x "$APP/Contents/MacOS/locomoco"
 
-# Icon-Cache anstupsen & Quarantäne/Gatekeeper-Dialog vermeiden
+# Bundle ad-hoc signieren — sonst löscht Gatekeeper eine unsignierte App beim Start
+codesign --force --deep -s - "$APP" 2>/dev/null || true
 touch "$APP"
 xattr -dr com.apple.quarantine "$APP" 2>/dev/null || true
 /System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/LaunchServices.framework/Versions/A/Support/lsregister -f "$APP" 2>/dev/null || true

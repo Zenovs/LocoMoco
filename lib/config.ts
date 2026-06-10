@@ -10,7 +10,11 @@ export function readConfig(): MocoConfig | null {
     const raw = fs.readFileSync(CONFIG_PATH, "utf-8");
     const parsed = JSON.parse(raw) as Partial<MocoConfig>;
     if (parsed.subdomain && parsed.apiKey) {
-      return { subdomain: parsed.subdomain, apiKey: parsed.apiKey };
+      return {
+        subdomain: parsed.subdomain,
+        apiKey: parsed.apiKey,
+        username: parsed.username?.trim() || undefined,
+      };
     }
     return null;
   } catch {

@@ -74,4 +74,10 @@ export interface MocoProjectReport {
 export interface MocoConfig {
   subdomain: string;
   apiKey: string;
+  /**
+   * MOCO-Login/Benutzername des API-Key-Besitzers. MOCO authentifiziert allein
+   * über den Token; den Namen hinterlegen wir, um das Dashboard standardmäßig
+   * auf die eigene Person zu setzen.
+   */
+  username?: string;
 }
