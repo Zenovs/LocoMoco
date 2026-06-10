@@ -3,7 +3,12 @@ set -euo pipefail
 
 REPO_URL="https://github.com/Zenovs/LocoMoco.git"
 INSTALL_DIR="$HOME/.loco-moco/app"
-LAUNCHER_DIR="$HOME/Applications"
+# Bevorzugt das systemweite /Applications (dort sucht jeder), sonst ~/Applications.
+if [[ -w /Applications ]]; then
+  LAUNCHER_DIR="/Applications"
+else
+  LAUNCHER_DIR="$HOME/Applications"
+fi
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 green()  { printf '\033[0;32m%s\033[0m\n' "$*"; }
@@ -139,9 +144,9 @@ step "App-Icon anlegen"
 mkdir -p "$LAUNCHER_DIR"
 
 APP="$LAUNCHER_DIR/Loco Moco.app"
-# Alte .command-Datei (frühere Versionen) entfernen
-rm -rf "$LAUNCHER_DIR/Loco Moco.command"
-rm -rf "$APP"
+# Alte Launcher/Reste in BEIDEN möglichen Orten entfernen (kein Duplikat)
+rm -rf "$HOME/Applications/Loco Moco.command" "/Applications/Loco Moco.command"
+rm -rf "$HOME/Applications/Loco Moco.app" "/Applications/Loco Moco.app"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 
 # Girly-Icon aus dem Repo übernehmen (vorgerendert, kein Build nötig)
