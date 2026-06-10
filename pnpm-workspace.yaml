@@ -1,0 +1,20 @@
+# pnpm 11 erzwingt standardmäßig einen ~24h-"minimumReleaseAge"-Cooldown auf
+# frisch veröffentlichte Pakete. Da diese App bewusst aktuelle Next.js-Releases
+# pinnt und sich bei jedem Start selbst per git pull aktualisiert, würde der
+# Cooldown jeden Install unmittelbar nach einem Dependency-Bump blockieren.
+# Deshalb hier projektweit deaktiviert (in pnpm 11 leben Settings in dieser Datei,
+# nicht mehr in .npmrc).
+minimumReleaseAge: 0
+
+# Build-Scripts dieser Pakete explizit erlauben. pnpm 11 blockt Postinstall-
+# Scripts sonst und lässt den (verschachtelten) Install mit ERR_PNPM_IGNORED_BUILDS
+# fehlschlagen, was wiederum "pnpm build" abbrechen würde.
+onlyBuiltDependencies:
+  - sharp
+  - unrs-resolver
+
+# pnpm 11 führt vor jedem "pnpm <script>" einen verschachtelten Verify-Install aus.
+# In diesem Modus ist ERR_PNPM_IGNORED_BUILDS ein harter Fehler und würde
+# "pnpm build" abbrechen. Wir verifizieren ohnehin direkt im install.sh / start.sh,
+# daher hier ausgeschaltet.
+verifyDepsBeforeRun: false
