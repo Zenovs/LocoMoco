@@ -1,0 +1,126 @@
+@import url("https://fonts.googleapis.com/css2?family=Pacifico&family=Fredoka:wght@400;500;600;700&family=Quicksand:wght@400;500;600;700&display=swap");
+@import "tailwindcss";
+
+:root {
+  --bubblegum: #ff4fa3;
+  --hotpink:   #ff2e95;
+  --blush:     #ffd6ec;
+  --cotton:    #fff4fa;
+  --lilac:     #c9a7ff;
+  --periwinkle:#a9b8ff;
+  --gold:      #ffd86b;
+  --plum:      #4a1d3f;
+  --plum-soft: #7a4d6e;
+  --mint:      #9af7d8;
+  --holo: linear-gradient(110deg,#ff8fd0 0%,#c9a7ff 30%,#a9d8ff 55%,#ffd86b 78%,#ff8fd0 100%);
+  --card-glow: 0 18px 50px -12px rgba(255,79,163,.45);
+  --radius: 28px;
+}
+
+* { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'Quicksand', sans-serif;
+  color: var(--plum);
+  min-height: 100vh;
+  background:
+    radial-gradient(1200px 600px at 12% -8%, #ffe1f1 0%, transparent 55%),
+    radial-gradient(900px 700px at 95% 5%, rgba(231,222,255,.95) 0%, transparent 50%),
+    radial-gradient(800px 800px at 60% 110%, #ffe9f6 0%, transparent 55%),
+    linear-gradient(160deg,#fff0f8 0%,#fde7ff 45%,#eef0ff 100%);
+  overflow-x: hidden;
+}
+
+/* ── sparkle field ─────────────────────────────────────── */
+#sparkles { position: fixed; inset: 0; pointer-events: none; z-index: 0; }
+.spark {
+  position: absolute; opacity: 0;
+  animation: floatUp linear infinite;
+  filter: drop-shadow(0 0 6px rgba(255,140,210,.7));
+}
+@keyframes floatUp {
+  0%   { transform: translateY(20px) scale(.6) rotate(0deg); opacity: 0; }
+  15%  { opacity: .9; }
+  85%  { opacity: .9; }
+  100% { transform: translateY(-120px) scale(1.1) rotate(180deg); opacity: 0; }
+}
+
+/* ── logo shimmer ──────────────────────────────────────── */
+@keyframes shimmer {
+  0%,100% { background-position: 0% 50%; }
+  50%     { background-position: 100% 50%; }
+}
+
+/* ── glass card ────────────────────────────────────────── */
+.card {
+  background: rgba(255,255,255,.66);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1.5px solid rgba(255,255,255,.9);
+  border-radius: var(--radius);
+  box-shadow: var(--card-glow);
+  padding: 26px 28px;
+  position: relative;
+  overflow: hidden;
+}
+/* holographic border via ::before */
+.card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1.5px;
+  background: var(--holo);
+  background-size: 220% 220%;
+  animation: shimmer 6s ease-in-out infinite;
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: .55;
+  pointer-events: none;
+}
+
+/* ── chip ──────────────────────────────────────────────── */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255,255,255,.7);
+  backdrop-filter: blur(10px);
+  border: 1.5px solid #ffc4e3;
+  border-radius: 9999px;
+  padding: 10px 18px;
+  font-family: 'Fredoka', sans-serif;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--plum);
+  cursor: pointer;
+  transition: transform .15s ease, box-shadow .15s ease;
+  box-shadow: 0 6px 16px -8px rgba(255,79,163,.5);
+}
+.chip:hover { transform: translateY(-2px); box-shadow: 0 10px 22px -8px rgba(255,79,163,.65); }
+.chip.active { background: var(--hotpink); color: #fff; border-color: var(--hotpink); }
+.chip .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--gold); box-shadow: 0 0 8px var(--gold); flex-shrink: 0; }
+
+/* ── progress bar ──────────────────────────────────────── */
+.bar { height: 11px; border-radius: 999px; background: #ffe3f1; overflow: hidden; }
+.bar > i { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--hotpink), var(--lilac)); box-shadow: 0 0 10px rgba(255,79,163,.5); }
+
+/* ── focus ─────────────────────────────────────────────── */
+:focus-visible { outline: 2.5px solid var(--hotpink); outline-offset: 3px; border-radius: 4px; }
+
+/* ── scrollbar ─────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--blush); border-radius: 3px; }
+::-webkit-scrollbar-thumb { background: var(--hotpink); border-radius: 3px; }
+
+/* ── reduced motion ────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .spark { display: none; }
+  .card::before { animation: none; }
+}
+
+h1 { font-family: 'Pacifico', cursive; }
+h2, h3 { font-family: 'Fredoka', sans-serif; }
