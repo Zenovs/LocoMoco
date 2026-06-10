@@ -137,15 +137,41 @@ export async function testConnection(config: MocoConfig): Promise<void> {
   const res = await fetch(`${baseUrl(config.subdomain)}/users?limit=1`, {
     headers: headers(config.apiKey),
   });
-  if (!res.ok) {
-    if (res.status === 401) {
-      throw new Error("API-Key passt nicht — bitte Key und Subdomain prüfen.");
+  if (res.ok) return;
+
+  if (res.status === 401) {
+    throw new Error("API-Key passt nicht — bitte Key und MOCO-URL prüfen.");
+  }
+  if (res.status === 404) {
+    throw new Error(
+      "MOCO-URL nicht gefunden — stimmt die Adresse bzw. Subdomain (z. B. `schnyder`)?"
+    );
+  }
+  if (res.status === 403) {
+    // Key authentifiziert, darf aber /users nicht lesen. Gegencheck, ob der Key
+    // überhaupt API-Zugriff hat (eigene Projekte darf jeder lesen).
+    let keyWorksAtAll = false;
+    try {
+      const self = await fetch(
+        `${baseUrl(config.subdomain)}/projects/assigned?limit=1`,
+        { headers: headers(config.apiKey) }
+      );
+      keyWorksAtAll = self.ok;
+    } catch {
+      /* Netzwerkfehler ignorieren — unten generische Meldung */
     }
-    if (res.status === 404) {
+    if (keyWorksAtAll) {
       throw new Error(
-        "Subdomain nicht gefunden — stimmt die Schreibweise (z. B. `schnyder`)?"
+        "Dein API-Key funktioniert, hat aber keine Berechtigung, die Mitarbeiterliste zu lesen. " +
+          "Loco Moco zeigt unternehmensweite Auswertungen und braucht dafür einen Key von einem " +
+          "MOCO-Account mit Administrator- oder Personal-Rechten. Den Key in MOCO unter " +
+          "Profil → Integrations eines solchen Accounts erzeugen."
       );
     }
-    throw new Error(`API antwortet mit Status ${res.status}.`);
+    throw new Error(
+      "Zugriff verweigert (403). Für diesen API-Key ist der API-Zugriff bzw. die nötige " +
+        "Berechtigung in MOCO nicht freigeschaltet — bitte die Berechtigungen prüfen."
+    );
   }
+  throw new Error(`API antwortet mit Status ${res.status}.`);
 }
