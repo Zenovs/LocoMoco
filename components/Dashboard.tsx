@@ -286,7 +286,7 @@ export default function Dashboard() {
               ✉️ Teilen
             </button>
             {auth.enabled && auth.caps.includes("users.manage") && (
-              <a href="/admin" className="chip" style={{ textDecoration: "none", fontWeight: 700 }}>🛠️ Admin</a>
+              <a href="/admin" className="chip" style={{ textDecoration: "none", fontWeight: 700 }}>👥 Benutzerverwaltung</a>
             )}
             {auth.enabled && auth.user && (
               <>

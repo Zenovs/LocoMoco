@@ -39,11 +39,11 @@ export default function Home() {
           <div className="card" style={{ maxWidth: 460, textAlign: "center" }}>
             <h2 style={{ fontSize: 18, color: "var(--plum)", marginBottom: 8 }}>Noch nicht mit MOCO verbunden</h2>
             <p style={{ fontSize: 14, color: "var(--plum-soft)", fontWeight: 600 }}>
-              Die Verbindung richtet die Administration im Admin-Panel ein.
+              Die Verbindung richtet die Administration in der Benutzerverwaltung ein.
             </p>
             {canManage && (
               <a href="/admin" className="chip active" style={{ display: "inline-block", marginTop: 16, textDecoration: "none" }}>
-                🔌 Zum Admin-Panel
+                🔌 Zur Benutzerverwaltung
               </a>
             )}
           </div>

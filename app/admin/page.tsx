@@ -121,7 +121,7 @@ export default function AdminPage() {
   }
 
   if (denied) {
-    return <div className="min-h-screen flex items-center justify-center"><div className="card" style={{ fontWeight: 700, color: "var(--plum)" }}>Kein Zugriff auf das Admin-Panel.</div></div>;
+    return <div className="min-h-screen flex items-center justify-center"><div className="card" style={{ fontWeight: 700, color: "var(--plum)" }}>Kein Zugriff auf die Benutzerverwaltung.</div></div>;
   }
 
   const roleName = (k: string) => roles.find((r) => r.key === k)?.name ?? k;
@@ -129,7 +129,7 @@ export default function AdminPage() {
   return (
     <div style={{ maxWidth: 1100, margin: "0 auto", padding: "32px 24px 80px" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 22, flexWrap: "wrap" }}>
-        <h1 style={{ fontFamily: "var(--font-display)", fontSize: 34, background: "var(--holo)", backgroundSize: "220% 220%", WebkitBackgroundClip: "text", backgroundClip: "text", color: "transparent" }}>Admin-Panel</h1>
+        <h1 style={{ fontFamily: "var(--font-display)", fontSize: 34, background: "var(--holo)", backgroundSize: "220% 220%", WebkitBackgroundClip: "text", backgroundClip: "text", color: "transparent" }}>Benutzerverwaltung</h1>
         <a href="/" className="chip" style={{ textDecoration: "none" }}>← Dashboard</a>
         <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
           <button className={`chip ${tab === "users" ? "active" : ""}`} onClick={() => setTab("users")}>👤 Benutzer</button>
