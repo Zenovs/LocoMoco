@@ -5,6 +5,7 @@
 export const CAPABILITIES = [
   { key: "users.manage", label: "Benutzer verwalten" },
   { key: "roles.manage", label: "Rollen & Freigaben verwalten" },
+  { key: "config.manage", label: "MOCO-Verbindung verwalten" },
   { key: "data.all", label: "Alle Mitarbeiter sehen (sonst nur eigene)" },
   { key: "data.salary", label: "Löhne sehen (später)" },
   { key: "data.liquidity", label: "Liquidität sehen (später)" },

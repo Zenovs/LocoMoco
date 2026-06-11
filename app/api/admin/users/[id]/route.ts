@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { currentUser, requireCapability } from "@/lib/access";
+import { requireCapability } from "@/lib/access";
 import { updateUser, deleteUser, findById, toPublic } from "@/lib/users";
 import { hashPassword } from "@/lib/password";
 import { findRole } from "@/lib/roles";
+import { ALL_CARDS } from "@/lib/permissions";
 
 export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   const guard = await requireCapability(req, "users.manage");
@@ -17,6 +18,7 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
     mocoUserId?: number | null;
     active?: boolean;
     password?: string;
+    allowedCards?: string[] | null;
   };
   try {
     b = await req.json();
@@ -33,6 +35,10 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
   if (b.theme != null) patch.theme = b.theme;
   if (b.mocoUserId !== undefined) patch.mocoUserId = b.mocoUserId === null ? undefined : Number(b.mocoUserId);
   if (b.active != null) patch.active = !!b.active;
+  if ("allowedCards" in b) {
+    // null = wieder „Default" (Admin sieht alles, andere nichts); Array = individuell
+    patch.allowedCards = b.allowedCards == null ? undefined : b.allowedCards.filter((c) => ALL_CARDS.includes(c));
+  }
   if (b.password) {
     if (b.password.length < 6) return NextResponse.json({ error: "Passwort min. 6 Zeichen." }, { status: 400 });
     patch.passwordHash = await hashPassword(b.password);

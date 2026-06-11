@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { SESSION_COOKIE, verifySession, authEnabled } from "./session";
 import { findById, type User } from "./users";
 import { findRole } from "./roles";
+import { ALL_CAPABILITIES, ALL_CARDS } from "./permissions";
 
 // Node-Runtime-Helfer (API-Routen). Holt den angemeldeten User aus dem Cookie
 // und prüft Rollen-Freigaben.
@@ -13,14 +14,21 @@ export async function currentUser(req: NextRequest): Promise<User | null> {
 }
 
 export function userCapabilities(user: User): string[] {
-  return findRole(user.role)?.capabilities ?? [];
+  const role = findRole(user.role);
+  // Der geschützte Admin hat IMMER alle Freigaben (auch neu hinzugekommene).
+  if (role?.builtin) return [...ALL_CAPABILITIES];
+  return role?.capabilities ?? [];
 }
 
 export function userCards(user: User): string[] {
-  return findRole(user.role)?.cards ?? [];
+  // Funktionen/Karten werden PRO PERSON freigeschaltet. Default: nichts.
+  // Ausnahme: der geschützte Admin sieht standardmäßig alles.
+  if (user.allowedCards != null) return user.allowedCards;
+  return findRole(user.role)?.builtin ? [...ALL_CARDS] : [];
 }
 
 export function hasCapability(user: User, cap: string): boolean {
+  if (findRole(user.role)?.builtin) return true; // Admin: alles
   return userCapabilities(user).includes(cap);
 }
 

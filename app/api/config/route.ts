@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { readConfig, writeConfig } from "@/lib/config";
 import { testConnection } from "@/lib/moco/client";
+import { authEnabled } from "@/lib/session";
+import { requireCapability } from "@/lib/access";
 import type { MocoConfig } from "@/types/moco";
 
 /**
@@ -28,6 +30,12 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+  // MOCO-Verbindung darf nur die Administration setzen (nicht normale User).
+  if (authEnabled()) {
+    const guard = await requireCapability(req, "config.manage");
+    if ("error" in guard) return guard.error;
+  }
+
   let body: { url?: string; subdomain?: string; apiKey?: string; username?: string };
   try {
     body = await req.json();

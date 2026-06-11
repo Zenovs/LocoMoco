@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 
 interface Role { key: string; name: string; builtin?: boolean; capabilities: string[]; cards: string[]; }
 interface Cap { key: string; label: string; }
-interface PublicUser { id: string; username: string; name: string; role: string; theme?: string; mocoUserId?: number; active: boolean; }
+interface PublicUser { id: string; username: string; name: string; role: string; theme?: string; mocoUserId?: number; active: boolean; allowedCards?: string[]; }
 interface MocoPerson { id: number; name: string; }
 
 const THEMES = [
@@ -25,7 +25,7 @@ const input: React.CSSProperties = {
 const labelS: React.CSSProperties = { fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".04em", color: "var(--plum-soft)" };
 
 export default function AdminPage() {
-  const [tab, setTab] = useState<"users" | "roles">("users");
+  const [tab, setTab] = useState<"users" | "roles" | "conn">("users");
   const [denied, setDenied] = useState(false);
   const [roles, setRoles] = useState<Role[]>([]);
   const [caps, setCaps] = useState<Cap[]>([]);
@@ -33,6 +33,35 @@ export default function AdminPage() {
   const [users, setUsers] = useState<PublicUser[]>([]);
   const [moco, setMoco] = useState<MocoPerson[]>([]);
   const [msg, setMsg] = useState("");
+  const [expandedUser, setExpandedUser] = useState<string | null>(null);
+
+  // ----- MOCO-Verbindung -----
+  const [conn, setConn] = useState({ url: "", username: "", apiKey: "" });
+  const [connConfigured, setConnConfigured] = useState(false);
+  useEffect(() => {
+    fetch("/api/config")
+      .then((r) => r.json())
+      .then((d: { configured: boolean; subdomain?: string; username?: string }) => {
+        setConnConfigured(d.configured);
+        if (d.subdomain) setConn((c) => ({ ...c, url: `https://${d.subdomain}.mocoapp.com` }));
+        if (d.username) setConn((c) => ({ ...c, username: d.username! }));
+      })
+      .catch(() => {});
+  }, []);
+  async function saveConn() {
+    const res = await fetch("/api/config", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(conn),
+    });
+    const d = await res.json();
+    if (!res.ok) return flash(d.error ?? "Fehler");
+    setConnConfigured(true); flash("MOCO-Verbindung gespeichert");
+  }
+
+  const cardKeys = cards.map((c) => c.key);
+  const roleOf = (u: PublicUser) => roles.find((r) => r.key === u.role);
+  const effCards = (u: PublicUser) => u.allowedCards ?? (roleOf(u)?.builtin ? cardKeys : []);
+  const hasOverride = (u: PublicUser) => u.allowedCards != null;
 
   const load = useCallback(async () => {
     const r = await fetch("/api/admin/roles");
@@ -105,6 +134,7 @@ export default function AdminPage() {
         <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
           <button className={`chip ${tab === "users" ? "active" : ""}`} onClick={() => setTab("users")}>👤 Benutzer</button>
           <button className={`chip ${tab === "roles" ? "active" : ""}`} onClick={() => setTab("roles")}>🛡️ Rollen</button>
+          <button className={`chip ${tab === "conn" ? "active" : ""}`} onClick={() => setTab("conn")}>🔌 Verbindung</button>
         </div>
       </div>
       {msg && <div className="card" style={{ marginBottom: 16, fontWeight: 700, color: "var(--hotpink)" }}>{msg}</div>}
@@ -143,21 +173,59 @@ export default function AdminPage() {
             <h2 style={{ fontSize: 17, color: "var(--plum)", marginBottom: 14 }}>Benutzer ({users.length})</h2>
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               {users.map((u) => (
-                <div key={u.id} style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr 1fr 1fr auto auto", gap: 10, alignItems: "center", padding: "10px 0", borderBottom: "1.5px dashed var(--chip-border)" }}>
-                  <div><b style={{ color: "var(--plum)" }}>{u.name}</b><div style={{ fontSize: 12, color: "var(--plum-soft)" }}>@{u.username}</div></div>
-                  <select style={input} value={u.role} onChange={(e) => patchUser(u.id, { role: e.target.value })}>
-                    {roles.map((r) => <option key={r.key} value={r.key}>{r.name}</option>)}
-                  </select>
-                  <select style={input} value={u.theme ?? ""} onChange={(e) => patchUser(u.id, { theme: e.target.value })}>
-                    <option value="">Standard</option>
-                    {THEMES.map((t) => <option key={t.key} value={t.key}>{t.label}</option>)}
-                  </select>
-                  <select style={input} value={u.mocoUserId ?? ""} onChange={(e) => patchUser(u.id, { mocoUserId: e.target.value ? Number(e.target.value) : null })}>
-                    <option value="">MOCO: —</option>
-                    {moco.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
-                  </select>
-                  <button className="chip" onClick={() => patchUser(u.id, { active: !u.active })}>{u.active ? "✓ aktiv" : "⊘ inaktiv"}</button>
-                  <button className="chip" onClick={() => delUser(u.id)} style={{ color: "#c0145a" }}>🗑</button>
+                <div key={u.id} style={{ padding: "10px 0", borderBottom: "1.5px dashed var(--chip-border)" }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "1.3fr 1fr 1fr 1fr auto auto auto", gap: 10, alignItems: "center" }}>
+                    <div><b style={{ color: "var(--plum)" }}>{u.name}</b><div style={{ fontSize: 12, color: "var(--plum-soft)" }}>@{u.username}</div></div>
+                    <select style={input} value={u.role} onChange={(e) => patchUser(u.id, { role: e.target.value })}>
+                      {roles.map((r) => <option key={r.key} value={r.key}>{r.name}</option>)}
+                    </select>
+                    <select style={input} value={u.theme ?? ""} onChange={(e) => patchUser(u.id, { theme: e.target.value })}>
+                      <option value="">Standard</option>
+                      {THEMES.map((t) => <option key={t.key} value={t.key}>{t.label}</option>)}
+                    </select>
+                    <select style={input} value={u.mocoUserId ?? ""} onChange={(e) => patchUser(u.id, { mocoUserId: e.target.value ? Number(e.target.value) : null })}>
+                      <option value="">MOCO: —</option>
+                      {moco.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
+                    </select>
+                    <button className={`chip ${expandedUser === u.id ? "active" : ""}`} onClick={() => setExpandedUser(expandedUser === u.id ? null : u.id)}>
+                      ⚙ Funktionen ({effCards(u).length})
+                    </button>
+                    <button className="chip" onClick={() => patchUser(u.id, { active: !u.active })}>{u.active ? "✓ aktiv" : "⊘ inaktiv"}</button>
+                    <button className="chip" onClick={() => delUser(u.id)} style={{ color: "#c0145a" }}>🗑</button>
+                  </div>
+
+                  {expandedUser === u.id && (
+                    <div style={{ marginTop: 10, padding: "12px 14px", background: "var(--input-bg)", borderRadius: 12 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10, flexWrap: "wrap" }}>
+                        <span style={labelS}>Freigeschaltete Funktionen für {u.name}</span>
+                        <span style={{ fontSize: 12, fontWeight: 800, color: hasOverride(u) ? "var(--hotpink)" : "var(--plum-soft)" }}>
+                          {hasOverride(u) ? "individuell" : roleOf(u)?.builtin ? "Admin – alles" : "Standard – nichts"}
+                        </span>
+                        {hasOverride(u) && (
+                          <button className="chip" style={{ padding: "3px 10px" }} onClick={() => patchUser(u.id, { allowedCards: null })}>↺ auf Standard zurück</button>
+                        )}
+                      </div>
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                        {cards.map((c) => {
+                          const on = effCards(u).includes(c.key);
+                          return (
+                            <button
+                              key={c.key}
+                              className={`chip ${on ? "active" : ""}`}
+                              style={{ fontSize: 12.5 }}
+                              onClick={() => {
+                                const base = effCards(u);
+                                const next = base.includes(c.key) ? base.filter((x) => x !== c.key) : [...base, c.key];
+                                patchUser(u.id, { allowedCards: next });
+                              }}
+                            >
+                              {on ? "✓ " : ""}{c.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -171,7 +239,7 @@ export default function AdminPage() {
             <h2 style={{ fontSize: 17, color: "var(--plum)", marginBottom: 14 }}>Neue Rolle</h2>
             <Field label="Name"><input style={{ ...input, maxWidth: 280 }} value={nr.name} onChange={(e) => setNr({ ...nr, name: e.target.value })} /></Field>
             <CheckGrid title="Freigaben" items={caps} selected={nr.capabilities} onToggle={(k) => setNr({ ...nr, capabilities: toggle(nr.capabilities, k) })} />
-            <CheckGrid title="Sichtbare Karten" items={cards} selected={nr.cards} onToggle={(k) => setNr({ ...nr, cards: toggle(nr.cards, k) })} />
+            <p style={{ fontSize: 12, color: "var(--plum-soft)", marginTop: 10 }}>Sichtbare Karten/Funktionen werden <b>pro Person</b> im Tab „Benutzer" freigeschaltet.</p>
             <button className="chip active" style={{ marginTop: 12 }} onClick={addRole}>+ Rolle anlegen</button>
           </section>
 
@@ -186,14 +254,32 @@ export default function AdminPage() {
               {role.builtin ? (
                 <p style={{ fontSize: 13, color: "var(--plum-soft)", fontWeight: 600 }}>Admin hat immer alle Rechte.</p>
               ) : (
-                <>
-                  <CheckGrid title="Freigaben" items={caps} selected={role.capabilities} onToggle={(k) => patchRole(role.key, { capabilities: toggle(role.capabilities, k) })} />
-                  <CheckGrid title="Sichtbare Karten" items={cards} selected={role.cards} onToggle={(k) => patchRole(role.key, { cards: toggle(role.cards, k) })} />
-                </>
+                <CheckGrid title="Freigaben" items={caps} selected={role.capabilities} onToggle={(k) => patchRole(role.key, { capabilities: toggle(role.capabilities, k) })} />
               )}
             </section>
           ))}
         </>
+      )}
+
+      {tab === "conn" && (
+        <section className="card" style={{ maxWidth: 520 }}>
+          <h2 style={{ fontSize: 17, color: "var(--plum)", marginBottom: 4 }}>MOCO-Verbindung</h2>
+          <p style={{ fontSize: 13, color: "var(--plum-soft)", fontWeight: 600, marginBottom: 16 }}>
+            Zentral für alle. {connConfigured ? "Aktuell verbunden." : "Noch nicht verbunden."}
+          </p>
+          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            <Field label="MOCO-URL">
+              <input style={input} value={conn.url} placeholder="https://schnyder.mocoapp.com" onChange={(e) => setConn({ ...conn, url: e.target.value })} />
+            </Field>
+            <Field label="Benutzername">
+              <input style={input} value={conn.username} placeholder="Vorname Nachname (Admin-Login)" onChange={(e) => setConn({ ...conn, username: e.target.value })} />
+            </Field>
+            <Field label="API-Key">
+              <input style={input} type="password" value={conn.apiKey} placeholder={connConfigured ? "Leer lassen = unverändert" : "API-Key (Admin-/Personal-Rechte)"} onChange={(e) => setConn({ ...conn, apiKey: e.target.value })} />
+            </Field>
+            <button className="chip active" style={{ alignSelf: "flex-start" }} onClick={saveConn}>Speichern & verbinden</button>
+          </div>
+        </section>
       )}
     </div>
   );

@@ -28,10 +28,6 @@ interface DashboardData {
   hoursCheck: HoursCheckResult;
 }
 
-interface Props {
-  onSettingsChange: () => void;
-}
-
 const MONTHS = [
   "Januar","Februar","März","April","Mai","Juni",
   "Juli","August","September","Oktober","November","Dezember",
@@ -47,7 +43,7 @@ interface LocoWindow extends Window {
   __locoExport?: (action: "pdf" | "share") => void;
 }
 
-export default function Dashboard({ onSettingsChange }: Props) {
+export default function Dashboard() {
   const now = new Date();
   const [users, setUsers] = useState<MocoUser[]>([]);
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
@@ -288,9 +284,6 @@ export default function Dashboard({ onSettingsChange }: Props) {
             </button>
             <button onClick={() => triggerExport("share")} className="chip" style={{ fontWeight: 700 }}>
               ✉️ Teilen
-            </button>
-            <button onClick={onSettingsChange} className="chip" aria-label="Einstellungen" style={{ fontSize: "0.95rem" }}>
-              ⚙️
             </button>
             {auth.enabled && auth.caps.includes("users.manage") && (
               <a href="/admin" className="chip" style={{ textDecoration: "none", fontWeight: 700 }}>🛠️ Admin</a>
