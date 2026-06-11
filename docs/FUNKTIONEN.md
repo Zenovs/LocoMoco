@@ -86,3 +86,23 @@ Schwellenwerten**. Die 24 Regeln:
 - **Phase 1** (sofort, ohne neue Daten): `gl.auslastung`, `prj.status`, `prj.rentabilitaet` (Stundenteil), `hr.leistung` (Stundenteil), `hr.rangliste`, `kd.wirtschaft` (Stundenteil), `warn.center` (alle 🟢-Regeln).
 - **Phase 2** (MOCO-Module anbinden): Umsatz/Rechnungen/WIP, Offerten/Pipeline, Planung (Kapazität & Vorschau), Abwesenheiten.
 - **Phase 3** (Kostensätze/Mapping): Marge & Deckungsbeitrag überall, CHF-Budgetabweichung, Geschäftsfeld-Auswertung.
+
+---
+
+## Stand nach Abklärung (Datenquellen bestätigt)
+
+- ✅ **Rechnungen, Offerten, Abwesenheiten** werden in MOCO genutzt → Umsatz, Rechnungsstatus, WIP, Pipeline/Abschlussquote, Krankheitsstunden, Kundenbindung **baubar**.
+- ✅ **Stundenkosten pro Mitarbeiter in MOCO** → Marge & Deckungsbeitrag **überall baubar** (Projekt/Kunde/MA).
+- ✅ **Geschäftsfeld = MOCO-Projektkategorie** → Umsatz/Auswertung pro Geschäftsfeld **baubar**.
+- ⏸ **MOCO-Planung wird NICHT genutzt** → vorerst NICHT baubar: `gl.kapazitaet` (30/60/90-Vorschau), `gl.lastverteilung` (frei/überlastet nach Plan), `hr.auslastung` (geplanter Teil). Rückblickende Auslastung & Verrechenbarkeit gehen weiterhin.
+- ⚠️ **Überstunden-Warnungen (11/12)** brauchen einen Überstundensaldo — klären wir beim Warn-Center.
+
+**Damit sind ~16 der 19 Funktionen sofort umsetzbar.**
+
+## Empfohlene Build-Reihenfolge
+1. `prj.rentabilitaet` — Projekt-Rentabilität (Budget, Abweichung, **Marge/DB**) — baut auf „Über-Budget" auf, hoher Nutzen.
+2. `gl.umsatz` + `gl.rechnungen` — Umsatz-Cockpit & Rechnungsstatus.
+3. `kd.wirtschaft` + `kd.rangliste` — Kunden-Wirtschaftlichkeit & Top-Listen.
+4. `gl.vertrieb` — Offerten/Pipeline.
+5. `warn.center` — Frühwarn-Center (zuerst die 🟢-Regeln, dann Rechnungs-Regeln).
+6. Rest (HR-Details, Umsatzverteilung/Geschäftsfeld …).
