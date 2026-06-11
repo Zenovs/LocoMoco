@@ -8,14 +8,12 @@ import { randomUUID } from "crypto";
 const DIR = path.join(process.env.HOME ?? "/tmp", ".loco-moco");
 const FILE = path.join(DIR, "users.json");
 
-export type Role = "admin" | "member";
-
 export interface User {
   id: string;
   username: string; // Login (eindeutig)
   name: string; // Anzeigename
   passwordHash: string;
-  role: Role;
+  role: string; // Rollen-Schlüssel (siehe lib/roles.ts)
   theme?: string; // pro Person zugewiesenes Theme
   allowedCards?: string[]; // sichtbare Dashboard-Karten (leer/undefined = Standard)
   mocoUserId?: number; // Verknüpfung zur MOCO-Person (für "eigene Daten")
