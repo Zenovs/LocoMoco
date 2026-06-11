@@ -10,6 +10,7 @@ import { calcProductivity } from "@/lib/metrics/productivity";
 import { calcTopNonBillableProjects } from "@/lib/metrics/nonBillable";
 import { calcOverBudgetProjects } from "@/lib/metrics/overBudget";
 import { calcTimeWasters } from "@/lib/metrics/timeWasters";
+import { calcHoursCheck } from "@/lib/metrics/hoursCheck";
 import { addMonths, getMonthRange } from "@/lib/metrics/dates";
 import type { MocoProject, MocoProjectReport } from "@/types/moco";
 
@@ -112,6 +113,9 @@ export async function GET(req: NextRequest) {
     // Zeitfresser (größte interne Posten) für das Coach-Panel
     const timeWasters = calcTimeWasters(activities, userId);
 
+    // Erfassungs-Check: Soll bis heute vs. erfasst + vergessene Tage
+    const hoursCheck = calcHoursCheck(activities, employments, userId, year, month);
+
     // Metrik 4 (Schläferprojekte) wird separat über /api/sleeping geladen —
     // sie ist global und am teuersten (65 Tage), daher nicht im kritischen Pfad.
     return NextResponse.json({
@@ -121,6 +125,7 @@ export async function GET(req: NextRequest) {
       nonBillable,
       overBudget,
       timeWasters,
+      hoursCheck,
     });
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Unbekannter Fehler.";

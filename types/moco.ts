@@ -8,7 +8,9 @@ export interface MocoUser {
 
 export interface MocoEmployment {
   id: number;
-  user_id: number;
+  // MOCO liefert den Nutzer verschachtelt als `user: { id }` (nicht user_id).
+  user?: { id: number; firstname?: string; lastname?: string };
+  user_id?: number; // Fallback für ältere/abweichende Antworten
   weekly_target_hours: number;
   pattern?: {
     am: number[];
@@ -16,6 +18,11 @@ export interface MocoEmployment {
   };
   from: string; // YYYY-MM-DD
   to?: string | null;
+}
+
+// Hilfsfunktion: Nutzer-ID einer Anstellung (verschachtelt oder flach).
+export function employmentUserId(e: MocoEmployment): number | undefined {
+  return e.user?.id ?? e.user_id;
 }
 
 export interface MocoProject {

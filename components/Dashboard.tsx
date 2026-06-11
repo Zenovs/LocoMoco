@@ -7,6 +7,7 @@ import type { NonBillableProject } from "@/lib/metrics/nonBillable";
 import type { OverBudgetProject } from "@/lib/metrics/overBudget";
 import type { SleepingProject } from "@/lib/metrics/sleeping";
 import type { TimeWaster } from "@/lib/metrics/timeWasters";
+import type { HoursCheckResult } from "@/lib/metrics/hoursCheck";
 import { buildAdvice } from "@/lib/advice";
 import ProductivityRing from "./ProductivityRing";
 import NonBillableChart from "./NonBillableChart";
@@ -15,6 +16,7 @@ import SleepingList from "./SleepingList";
 import MonthCompare, { type MonthSlot } from "./MonthCompare";
 import LoadingScreen from "./LoadingScreen";
 import CoachPanel from "./CoachPanel";
+import HoursCheck from "./HoursCheck";
 
 interface DashboardData {
   users: MocoUser[];
@@ -23,6 +25,7 @@ interface DashboardData {
   nonBillable: NonBillableProject[];
   overBudget: OverBudgetProject[];
   timeWasters: TimeWaster[];
+  hoursCheck: HoursCheckResult;
 }
 
 interface Props {
@@ -351,6 +354,13 @@ export default function Dashboard({ onSettingsChange }: Props) {
               />
               <NonBillableChart projects={data.nonBillable} userName={selectedUser.firstname} />
             </div>
+
+            {/* Erfassungs-Check: Soll bis heute vs. erfasst + vergessene Tage */}
+            {data.hoursCheck && (
+              <div style={{ marginTop: 22 }}>
+                <HoursCheck check={data.hoursCheck} userName={selectedUser.firstname} />
+              </div>
+            )}
 
             {/* Coach-Panel, wenn unter Mindestziel */}
             {advice?.belowTarget && selectedTarget !== null && (

@@ -1,4 +1,5 @@
 import type { MocoActivity, MocoEmployment } from "@/types/moco";
+import { employmentUserId } from "@/types/moco";
 import { getWorkdaysInMonth } from "./dates";
 
 export interface ProductivityResult {
@@ -52,7 +53,7 @@ function calcTargetHours(
   const monthEnd = new Date(year, month, 0);
 
   const emp = employments
-    .filter((e) => e.user_id === userId)
+    .filter((e) => employmentUserId(e) === userId)
     .find((e) => {
       const from = new Date(e.from);
       const to = e.to ? new Date(e.to) : new Date("9999-12-31");
