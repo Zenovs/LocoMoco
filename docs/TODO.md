@@ -20,32 +20,32 @@ Status: ⬜ offen · 🟦 in Arbeit · ✅ fertig
 
 ---
 
-## Phase 1 — sofort baubar
+## Welle 1 — gebaut (stundenbasiert) ✅
+
+Firmenweite Sektion (`/api/company`, Karte je Person zuschaltbar, braucht `data.all`).
+CHF/Marge/DB sind als nächste Welle markiert (brauchen Kostensätze).
 
 ### Projekt
-- ⬜ `prj.rentabilitaet` — **Projekt-Rentabilität** 🟢🟠
-  budgetierte/effektive Stunden, Budgetabweichung %/h/CHF, Marge, Umsatz, DB pro Projekt
-- ⬜ `prj.rangliste` — **Projekt-Ranglisten** 🟢🟠
-  Top 10 profitabel/unprofitabel, Budgetüberschreitung, negativer DB, meiste Nachträge
-- ⬜ `prj.status` — **Projektstatus** 🟢
-  offen, in Verzug, ohne Aktivität, kurz vor Budgetende *(teils da: Schläfer/Über-Budget)*
+- ✅ `prj.rentabilitaet` — **Projekt-Rentabilität** — Stunden, Budget, Fortschritt, Verr.-Quote · ⬜ CHF/Marge/DB (Kostensätze)
+- ✅ `prj.rangliste` — **Projekt-Ranglisten** — grösste Budgetüberschreitung, meiste Stunden · ⬜ profitabel/DB (Kostensätze)
+- ✅ `prj.status` — **Projektstatus** — aktiv, über Budget, ≥80 %, 30 T ohne Aktivität, Termin überschritten
 
 ### GL
+- ✅ `gl.auslastung` — **Auslastung & Verrechenbarkeit (Firma)** — erfasst/Soll, Verrechenbarkeit
 - ⬜ `gl.umsatz` — **Umsatz-Cockpit** 🔵 (Rechnungen) — Umsatz lfd. Monat, YTD, Trend
 - ⬜ `gl.rechnungen` — **Rechnungsstatus** 🔵 — offene/überfällige Rechnungen
 - ⬜ `gl.wip` — **Fakturierbar, nicht verrechnet** 🔵🟢
-- ⬜ `gl.auslastung` — **Auslastung & Verrechenbarkeit (Agentur)** 🟢
 - ⬜ `gl.margen` — **Margen & Deckungsbeitrag** 🟠 — Ø Projektmarge, DB pro Kunde
 - ⬜ `gl.umsatzverteilung` — **Umsatz-Verteilung** 🔵🟠 — pro MA / Kunde / Geschäftsfeld (= Projekt-Kategorie)
 - ⬜ `gl.vertrieb` — **Vertrieb / Pipeline** 🔵 (Offerten) — Volumen offen, Abschlussquote, Ø Summe
 
 ### HR
-- ⬜ `hr.leistung` — **Mitarbeiterleistung** 🟢🔵🟠 — Verrechenbarkeit, intern, Krankheit, Umsatz, DB pro MA
-- ⬜ `hr.rangliste` — **Team-Rangliste** 🟢🔵 — Top Performer, höchster interner Anteil
+- ✅ `hr.leistung` — **Mitarbeiterleistung** — Erfasst, verrechenbar, Verr.-Quote, Auslastung · ⬜ Krankheit (Abwesenheiten), DB (Kostensätze)
+- ✅ `hr.rangliste` — **Team-Rangliste** — Top nach Verrechenbarkeit
 
 ### Kunden
-- ⬜ `kd.wirtschaft` — **Kunden-Wirtschaftlichkeit** 🟢🔵🟠 — Umsatz, DB, Marge, Umsatz/Stunde
-- ⬜ `kd.rangliste` — **Kunden-Ranglisten** 🟢🟠 — Top 20 Umsatz/Gewinn, Stundenverbrauch, Budgetüberschreitung
+- ✅ `kd.wirtschaft` — **Kunden-Wirtschaftlichkeit** — Aufwand, verrechenbar, Verr.-Quote · ⬜ Umsatz/DB/Marge (Rechnungen+Kostensätze)
+- ✅ `kd.rangliste` — **Kunden-Ranglisten** — Top nach Aufwand · ⬜ Umsatz/Gewinn (Rechnungen)
 - ⬜ `kd.bindung` — **Kundenbindung** 🔵🟢 — letzte Fakturierung/Projektabschluss, ohne Auftrag seit X, rückläufiger Umsatz
 
 ### Frühwarn-Center
