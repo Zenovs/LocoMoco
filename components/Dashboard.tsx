@@ -31,6 +31,14 @@ const MONTHS = [
 
 const monthLabel = (y: number, m: number) => `${MONTHS[m - 1]} ${y}`;
 
+interface NativeBridge {
+  postMessage: (msg: unknown) => void;
+}
+interface LocoWindow extends Window {
+  webkit?: { messageHandlers?: { locomoco?: NativeBridge } };
+  __locoExport?: (action: "pdf" | "share") => void;
+}
+
 export default function Dashboard({ onSettingsChange }: Props) {
   const now = new Date();
   const [users, setUsers] = useState<MocoUser[]>([]);
@@ -129,6 +137,30 @@ export default function Dashboard({ onSettingsChange }: Props) {
     return () => { cancelled = true; };
   }, [compare, selectedUserId, year, month, cmpYear, cmpMonth]);
 
+  // Export-Brücke: PDF sichern / teilen (nativ via WKWebView, sonst Browser-Fallback)
+  useEffect(() => {
+    const w = window as unknown as LocoWindow;
+    w.__locoExport = (action: "pdf" | "share") => {
+      const u = users.find((x) => x.id === selectedUserId);
+      const name = u ? `${u.firstname} ${u.lastname}` : "Bericht";
+      const period = `${MONTHS[month - 1]} ${year}`;
+      const filename = `Loco Moco – ${name} – ${period}.pdf`;
+      const subject = `Loco Moco Bericht – ${name} – ${period}`;
+      document.body.classList.add("exporting");
+      window.setTimeout(() => {
+        const bridge = w.webkit?.messageHandlers?.locomoco;
+        if (bridge) bridge.postMessage({ action, filename, subject });
+        else if (action === "pdf") window.print();
+        else window.location.href = `mailto:?subject=${encodeURIComponent(subject)}`;
+      }, 130);
+      window.setTimeout(() => document.body.classList.remove("exporting"), 1600);
+    };
+    return () => { delete (window as unknown as LocoWindow).__locoExport; };
+  }, [users, selectedUserId, month, year]);
+
+  const triggerExport = (action: "pdf" | "share") =>
+    (window as unknown as LocoWindow).__locoExport?.(action);
+
   const selectedUser = users.find((u) => u.id === selectedUserId);
 
   const yearOptions: number[] = [];
@@ -162,13 +194,21 @@ export default function Dashboard({ onSettingsChange }: Props) {
             </p>
           </div>
 
-          <button onClick={onSettingsChange} className="chip" aria-label="Einstellungen" style={{ fontSize: "0.95rem" }}>
-            ⚙️
-          </button>
+          <div className="no-print" style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <button onClick={() => triggerExport("pdf")} className="chip" style={{ fontWeight: 700 }}>
+              📄 PDF
+            </button>
+            <button onClick={() => triggerExport("share")} className="chip" style={{ fontWeight: 700 }}>
+              ✉️ Teilen
+            </button>
+            <button onClick={onSettingsChange} className="chip" aria-label="Einstellungen" style={{ fontSize: "0.95rem" }}>
+              ⚙️
+            </button>
+          </div>
         </header>
 
         {/* Steuerleiste */}
-        <div className="card" style={{ display: "flex", flexWrap: "wrap", alignItems: "flex-end", gap: 14, marginBottom: 22, padding: "16px 18px" }}>
+        <div className="card no-print" style={{ display: "flex", flexWrap: "wrap", alignItems: "flex-end", gap: 14, marginBottom: 22, padding: "16px 18px" }}>
           <Field label="Mitarbeiter">
             <select
               value={selectedUserId ?? ""}
@@ -289,6 +329,11 @@ export default function Dashboard({ onSettingsChange }: Props) {
       <style>{`
         @media (max-width: 820px) {
           .responsive-grid { grid-template-columns: 1fr !important; }
+        }
+        body.exporting .no-print { display: none !important; }
+        @media print {
+          .no-print { display: none !important; }
+          body { background: #fff !important; }
         }
         .select {
           appearance: none;

@@ -4,6 +4,7 @@
 // Server gestoppt.  Build:  swiftc -O -framework Cocoa -framework WebKit ...
 import Cocoa
 import WebKit
+import UniformTypeIdentifiers
 
 let PORT = 4577
 let HOME = FileManager.default.homeDirectoryForCurrentUser.path
@@ -11,7 +12,7 @@ let START_SH = "\(HOME)/.loco-moco/app/scripts/start.sh"
 let LOG_FILE = "\(HOME)/.loco-moco/app.log"
 let URL_STRING = "http://localhost:\(PORT)/"
 
-final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
+final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, WKScriptMessageHandler {
     var window: NSWindow!
     var webView: WKWebView!
     var overlay: NSView!
@@ -34,7 +35,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
         let container = NSView(frame: frame)
         container.autoresizingMask = [.width, .height]
 
-        webView = WKWebView(frame: frame, configuration: WKWebViewConfiguration())
+        let cfg = WKWebViewConfiguration()
+        let ucc = WKUserContentController()
+        ucc.add(self, name: "locomoco") // JS-Brücke fürs Teilen/PDF
+        cfg.userContentController = ucc
+        webView = WKWebView(frame: frame, configuration: cfg)
         webView.navigationDelegate = self
         webView.autoresizingMask = [.width, .height]
         container.addSubview(webView)
@@ -81,6 +86,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
                         action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         appItem.submenu = appMenu
 
+        // Ablage: PDF sichern / Teilen
+        let fileItem = NSMenuItem()
+        mainMenu.addItem(fileItem)
+        let fileMenu = NSMenu(title: "Ablage")
+        fileMenu.addItem(withTitle: "Als PDF sichern…", action: #selector(menuSavePDF), keyEquivalent: "p")
+        fileMenu.addItem(withTitle: "Bericht teilen…", action: #selector(menuShare), keyEquivalent: "S")
+        fileItem.submenu = fileMenu
+
         let editItem = NSMenuItem()
         mainMenu.addItem(editItem)
         let editMenu = NSMenu(title: "Bearbeiten")
@@ -104,6 +117,75 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
     }
 
     @objc func reload() { webView.reload() }
+
+    // Menü -> über JS denselben Export-Pfad auslösen (JS kennt Name/Monat)
+    @objc func menuSavePDF() {
+        webView.evaluateJavaScript("window.__locoExport && window.__locoExport('pdf')")
+    }
+    @objc func menuShare() {
+        webView.evaluateJavaScript("window.__locoExport && window.__locoExport('share')")
+    }
+
+    // MARK: WKScriptMessageHandler — JS-Brücke fürs Teilen/PDF
+    func userContentController(_ uc: WKUserContentController, didReceive message: WKScriptMessage) {
+        guard message.name == "locomoco",
+              let body = message.body as? [String: Any],
+              let action = body["action"] as? String else { return }
+        let filename = (body["filename"] as? String) ?? "Loco Moco Bericht.pdf"
+        let subject = (body["subject"] as? String) ?? "Loco Moco Bericht"
+        switch action {
+        case "pdf": savePDF(filename: filename)
+        case "share": sharePDF(filename: filename, subject: subject)
+        default: break
+        }
+    }
+
+    private func generatePDF(_ completion: @escaping (Data) -> Void) {
+        let config = WKPDFConfiguration()
+        webView.createPDF(configuration: config) { [weak self] result in
+            switch result {
+            case .success(let data): completion(data)
+            case .failure(let err):
+                self?.showAlert("PDF konnte nicht erstellt werden", err.localizedDescription)
+            }
+        }
+    }
+
+    private func savePDF(filename: String) {
+        generatePDF { [weak self] data in
+            guard let self = self else { return }
+            let panel = NSSavePanel()
+            panel.nameFieldStringValue = filename
+            panel.allowedContentTypes = [UTType.pdf]
+            panel.canCreateDirectories = true
+            panel.beginSheetModal(for: self.window) { resp in
+                if resp == .OK, let url = panel.url {
+                    try? data.write(to: url)
+                }
+            }
+        }
+    }
+
+    private func sharePDF(filename: String, subject: String) {
+        generatePDF { [weak self] data in
+            guard let self = self else { return }
+            let tmp = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(filename)
+            do { try data.write(to: tmp) }
+            catch { self.showAlert("Teilen fehlgeschlagen", error.localizedDescription); return }
+            let picker = NSSharingServicePicker(items: [tmp])
+            let b = self.webView.bounds
+            let anchor = NSRect(x: b.midX - 1, y: b.maxY - 70, width: 2, height: 2)
+            picker.show(relativeTo: anchor, of: self.webView, preferredEdge: .minY)
+        }
+    }
+
+    private func showAlert(_ title: String, _ msg: String) {
+        let a = NSAlert()
+        a.messageText = title
+        a.informativeText = msg
+        a.alertStyle = .warning
+        a.runModal()
+    }
 
     func bootstrap() {
         DispatchQueue.global(qos: .userInitiated).async {

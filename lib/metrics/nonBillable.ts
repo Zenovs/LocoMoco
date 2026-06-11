@@ -40,6 +40,7 @@ export function calcTopNonBillableProjects(
       totalHours: Math.round(v.total * 10) / 10,
       nonBillablePct: Math.round((v.nonBillable / v.total) * 100),
     }))
-    .sort((a, b) => b.nonBillablePct - a.nonBillablePct)
+    .filter((p) => p.nonBillableHours > 0)
+    .sort((a, b) => b.nonBillableHours - a.nonBillableHours)
     .slice(0, topN);
 }
