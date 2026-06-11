@@ -321,4 +321,7 @@ export interface CompanyReport {
   projectStatus: ProjectStatus;
   employees: EmployeePerf[];
   customers: CustomerEcon[];
+  // Finanzteil (Rechnungen/Offerten/Marge). null, wenn die MOCO-Module nicht
+  // zugänglich sind (z. B. 403) — die Stunden-Karten funktionieren trotzdem.
+  finance: import("./finance").FinanceReport | null;
 }

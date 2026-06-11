@@ -7,9 +7,11 @@ import type {
   EmployeePerf,
   CustomerEcon,
 } from "@/lib/metrics/company";
+import type { FinanceReport, MarginRow } from "@/lib/metrics/finance";
 
 const h = (n: number) => `${n.toLocaleString("de-CH", { maximumFractionDigits: 1 })} h`;
 const p = (n: number) => `${n} %`;
+const chf = (n: number) => `${n.toLocaleString("de-CH", { maximumFractionDigits: 0 })} CHF`;
 
 // ---------------------------------------------------------------------------
 // Sektion: lädt /api/company einmal und rendert die freigegebenen Firmen-Karten.
@@ -27,6 +29,11 @@ export default function CompanySection({
 }) {
   const keys = [
     "gl.auslastung",
+    "gl.umsatz",
+    "gl.rechnungen",
+    "gl.wip",
+    "gl.vertrieb",
+    "gl.margen",
     "prj.rentabilitaet",
     "prj.rangliste",
     "prj.status",
@@ -74,6 +81,14 @@ export default function CompanySection({
       {!loading && data && (
         <div style={{ display: "grid", gap: 22 }}>
           {showCard("gl.auslastung") && <UtilizationCard d={data} />}
+          {(showCard("gl.umsatz") || showCard("gl.rechnungen")) && (
+            <div style={{ display: "grid", gridTemplateColumns: showCard("gl.umsatz") && showCard("gl.rechnungen") ? "1.4fr 1fr" : "1fr", gap: 22 }} className="responsive-grid">
+              {showCard("gl.umsatz") && <RevenueCard f={data.finance} />}
+              {showCard("gl.rechnungen") && <InvoiceStatusCard f={data.finance} />}
+            </div>
+          )}
+          {showCard("gl.vertrieb") && <PipelineCard f={data.finance} />}
+          {showCard("gl.wip") && <WipCard f={data.finance} />}
           {showCard("prj.status") && <ProjectStatusCard d={data} />}
           {(showCard("hr.leistung") || showCard("hr.rangliste")) && (
             <div style={{ display: "grid", gridTemplateColumns: showCard("hr.leistung") && showCard("hr.rangliste") ? "1.4fr 1fr" : "1fr", gap: 22 }} className="responsive-grid">
@@ -89,6 +104,7 @@ export default function CompanySection({
               {showCard("kd.rangliste") && <CustomerRankingCard rows={data.customers} />}
             </div>
           )}
+          {showCard("gl.margen") && <MarginCard f={data.finance} />}
         </div>
       )}
     </section>
@@ -279,6 +295,146 @@ function CustomerRankingCard({ rows }: { rows: CustomerEcon[] }) {
       <CardTitle icon="🥇" title="Kunden-Ranglisten" hint="Top nach Aufwand" />
       <Ranking items={top.map((r, i) => ({ rank: i + 1, name: r.customerName, value: h(r.totalHours) }))} />
     </div>
+  );
+}
+
+// Hinweis, wenn der Finanzteil (Rechnungen/Offerten) nicht verfügbar ist.
+function FinanceUnavailable({ icon, title }: { icon: string; title: string }) {
+  return (
+    <div className="card">
+      <CardTitle icon={icon} title={title} />
+      <Empty text="Keine Rechnungs-/Offertendaten verfügbar — entweder hat der MOCO-Key keinen Zugriff auf diese Module, oder es gibt im Zeitraum keine Daten." />
+    </div>
+  );
+}
+
+// === gl.umsatz ===
+function RevenueCard({ f }: { f: FinanceReport | null }) {
+  if (!f) return <FinanceUnavailable icon="💰" title="Umsatz-Cockpit" />;
+  const max = Math.max(1, ...f.revenue.trend.map((t) => t.net));
+  return (
+    <div className="card">
+      <CardTitle icon="💰" title="Umsatz-Cockpit" hint="fakturiert (netto)" />
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 18, marginBottom: 16 }}>
+        <Stat label="Dieser Monat" value={chf(f.revenue.monthNet)} sub={`${f.revenue.invoiceCount} Rechnungen`} color="var(--hotpink)" />
+        <Stat label="Jahr bisher" value={chf(f.revenue.ytdNet)} sub="seit Januar" />
+      </div>
+      <div style={{ display: "flex", alignItems: "flex-end", gap: 8, height: 84 }}>
+        {f.revenue.trend.map((t, i) => (
+          <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+            <div style={{ width: "100%", height: 60, display: "flex", alignItems: "flex-end" }}>
+              <div title={chf(t.net)} style={{ width: "100%", height: `${Math.max(3, (t.net / max) * 100)}%`, background: "var(--hotpink)", borderRadius: "6px 6px 0 0", opacity: i === f.revenue.trend.length - 1 ? 1 : 0.55 }} />
+            </div>
+            <span style={{ fontSize: 11, fontWeight: 700, color: "var(--plum-soft)" }}>{t.label}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// === gl.rechnungen ===
+function InvoiceStatusCard({ f }: { f: FinanceReport | null }) {
+  if (!f) return <FinanceUnavailable icon="🧾" title="Rechnungsstatus" />;
+  const s = f.invoiceStatus;
+  return (
+    <div className="card">
+      <CardTitle icon="🧾" title="Rechnungsstatus" />
+      <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+        <StatusRow label="Offen (unbezahlt)" count={s.open.count} value={chf(s.open.net)} />
+        <StatusRow label="Überfällig" count={s.overdue.count} value={chf(s.overdue.net)} color="#c0145a" />
+        <StatusRow label="Bezahlt (Monat)" count={s.paidMonth.count} value={chf(s.paidMonth.net)} color="#0a8a4a" />
+      </div>
+    </div>
+  );
+}
+function StatusRow({ label, count, value, color }: { label: string; count: number; value: string; color?: string }) {
+  return (
+    <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10 }}>
+      <span style={{ fontWeight: 700, color: "var(--plum)" }}>{label} <span style={{ color: "var(--plum-soft)", fontWeight: 600 }}>· {count}</span></span>
+      <span style={{ fontFamily: "var(--font-display)", fontSize: 22, color: color ?? "var(--plum)" }}>{value}</span>
+    </div>
+  );
+}
+
+// === gl.vertrieb ===
+function PipelineCard({ f }: { f: FinanceReport | null }) {
+  if (!f || !f.pipeline) return <FinanceUnavailable icon="🎯" title="Vertrieb / Pipeline" />;
+  const pl = f.pipeline;
+  return (
+    <div className="card">
+      <CardTitle icon="🎯" title="Vertrieb / Pipeline" hint="aus den Offerten" />
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 18 }}>
+        <Stat label="Offenes Volumen" value={chf(pl.openVolume)} sub={`${pl.openCount} offene Offerten`} color="var(--hotpink)" />
+        <Stat label="Ø Offertensumme" value={chf(pl.avgOffer)} />
+        <Stat label="Angenommen" value={chf(pl.acceptedVolume)} />
+        <Stat label="Abschlussquote" value={p(pl.winRatePct)} sub="angenommen ÷ (angen. + offen)" />
+      </div>
+    </div>
+  );
+}
+
+// === gl.wip ===
+function WipCard({ f }: { f: FinanceReport | null }) {
+  if (!f) return <FinanceUnavailable icon="⏳" title="Fakturierbar, nicht verrechnet" />;
+  return (
+    <div className="card">
+      <CardTitle icon="⏳" title="Fakturierbar, nicht verrechnet" hint="aktive Projekte mit verrechenbaren Stunden, aber ohne Rechnung diesen Monat" />
+      {f.wipProjects.length ? (
+        <Table
+          head={["Projekt", "Kunde", "Verr. Stunden"]}
+          align={["left", "left", "right"]}
+          rows={f.wipProjects.map((w) => [w.name, w.customerName, h(w.billableHours)])}
+        />
+      ) : <Empty text="Alle verrechenbaren Leistungen sind fakturiert 🎉" />}
+    </div>
+  );
+}
+
+// === gl.margen ===
+function MarginCard({ f }: { f: FinanceReport | null }) {
+  if (!f) return <FinanceUnavailable icon="📐" title="Margen & Deckungsbeitrag" />;
+  if (!f.hasRates) {
+    return (
+      <div className="card">
+        <CardTitle icon="📐" title="Margen & Deckungsbeitrag" />
+        <Empty text="Noch keine Kostensätze hinterlegt. In der Benutzerverwaltung → Kostensätze einen Stundensatz (CHF/h) setzen, dann werden Marge und Deckungsbeitrag berechnet." />
+      </div>
+    );
+  }
+  const top = [...f.customerMargins].sort((a, b) => b.margin - a.margin).slice(0, 5);
+  const bottom = [...f.customerMargins].sort((a, b) => a.margin - b.margin).filter((m) => m.margin < 0).slice(0, 5);
+  return (
+    <div className="card">
+      <CardTitle icon="📐" title="Margen & Deckungsbeitrag" hint="Monat: fakturiert − Personalkosten (Stunden × Satz)" />
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 18, marginBottom: 14 }}>
+        <Stat label="Ø Marge" value={p(f.avgMarginPct)} color={f.avgMarginPct >= 0 ? "#0a8a4a" : "#c0145a"} />
+      </div>
+      <div style={{ fontSize: 13, fontWeight: 800, color: "var(--plum-soft)", marginBottom: 8 }}>Deckungsbeitrag pro Kunde (Top)</div>
+      <MarginTable rows={top} />
+      {bottom.length > 0 && (
+        <>
+          <div style={{ fontSize: 13, fontWeight: 800, color: "#c0145a", margin: "14px 0 8px" }}>Negativer Deckungsbeitrag</div>
+          <MarginTable rows={bottom} />
+        </>
+      )}
+    </div>
+  );
+}
+function MarginTable({ rows }: { rows: MarginRow[] }) {
+  if (!rows.length) return <Empty text="Keine Daten." />;
+  return (
+    <Table
+      head={["Kunde", "Umsatz", "Kosten", "DB", "Marge"]}
+      align={["left", "right", "right", "right", "right"]}
+      rows={rows.map((m) => [
+        m.name,
+        chf(m.revenue),
+        chf(m.cost),
+        <span key="db" style={{ color: m.margin >= 0 ? "#0a8a4a" : "#c0145a", fontWeight: 800 }}>{chf(m.margin)}</span>,
+        <span key="mp" style={{ color: m.margin >= 0 ? "var(--plum)" : "#c0145a" }}>{p(m.marginPct)}</span>,
+      ])}
+    />
   );
 }
 

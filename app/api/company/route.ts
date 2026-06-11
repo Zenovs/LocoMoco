@@ -6,6 +6,8 @@ import {
   getProjects,
   getProjectReport,
   getUsers,
+  getInvoices,
+  getOffers,
 } from "@/lib/moco/client";
 import { getMonthRange, toISODate, subtractDays } from "@/lib/metrics/dates";
 import { cacheGet, cacheSet } from "@/lib/moco/cache";
@@ -18,7 +20,9 @@ import {
   calcCustomerEcon,
   type CompanyReport,
 } from "@/lib/metrics/company";
-import type { MocoProject, MocoProjectReport } from "@/types/moco";
+import { calcFinance, type FinanceReport } from "@/lib/metrics/finance";
+import { readRates } from "@/lib/rates";
+import type { MocoInvoice, MocoOffer, MocoProject, MocoProjectReport } from "@/types/moco";
 
 export const dynamic = "force-dynamic";
 
@@ -83,12 +87,30 @@ export async function GET(req: NextRequest) {
       reportEntries.filter(Boolean) as [number, MocoProjectReport][]
     );
 
+    // Finanzteil: Rechnungen + Offerten + Kostensätze. Eigenes try/catch — sind
+    // die Module nicht zugänglich (403/404), bleiben die Stunden-Karten heil.
+    let finance: FinanceReport | null = null;
+    try {
+      const invFrom = toISODate(subtractDays(now, 730)); // ~2 Jahre für YTD/offen/überfällig
+      const invTo = toISODate(now);
+      const [invoices, offers] = await Promise.all([
+        getInvoices(config, invFrom, invTo).catch(() => [] as MocoInvoice[]),
+        getOffers(config).catch(() => [] as MocoOffer[]),
+      ]);
+      if (invoices.length || offers.length) {
+        finance = calcFinance(invoices, offers, activities, projects, readRates(), year, month, now);
+      }
+    } catch {
+      finance = null;
+    }
+
     const report: CompanyReport = {
       utilization: calcAgencyUtilization(activities, employments, users, year, month),
       projects: calcProjectProfit(reports, projects, activities),
       projectStatus: calcProjectStatus(projectList, reports, recentActivities, now),
       employees: calcEmployeePerf(activities, employments, users, year, month),
       customers: calcCustomerEcon(activities, projects),
+      finance,
     };
 
     cacheSet(cacheKey, report, REPORT_TTL_MS);

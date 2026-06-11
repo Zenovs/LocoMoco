@@ -2,6 +2,8 @@ import type {
   MocoActivity,
   MocoConfig,
   MocoEmployment,
+  MocoInvoice,
+  MocoOffer,
   MocoProject,
   MocoProjectReport,
   MocoUser,
@@ -167,6 +169,40 @@ export async function getProjectReport(
     throw new Error(`MOCO API ${res.status}: ${text}`);
   }
   const data = (await res.json()) as MocoProjectReport;
+  cacheSet(key, data);
+  return data;
+}
+
+// Rechnungen. MOCO unterstützt Datumsfilter (date_from/date_to). Wir holen
+// standardmäßig das laufende + Vorjahr (für YTD/Trend) und cachen serverseitig.
+export async function getInvoices(
+  config: MocoConfig,
+  dateFrom: string,
+  dateTo: string
+): Promise<MocoInvoice[]> {
+  const key = `invoices:${config.subdomain}:${dateFrom}:${dateTo}`;
+  const cached = cacheGet<MocoInvoice[]>(key);
+  if (cached) return cached;
+
+  const data = await fetchAllPages<MocoInvoice>(
+    `${baseUrl(config.subdomain)}/invoices`,
+    config.apiKey,
+    { date_from: dateFrom, date_to: dateTo }
+  );
+  cacheSet(key, data);
+  return data;
+}
+
+// Offerten.
+export async function getOffers(config: MocoConfig): Promise<MocoOffer[]> {
+  const key = `offers:${config.subdomain}`;
+  const cached = cacheGet<MocoOffer[]>(key);
+  if (cached) return cached;
+
+  const data = await fetchAllPages<MocoOffer>(
+    `${baseUrl(config.subdomain)}/offers`,
+    config.apiKey
+  );
   cacheSet(key, data);
   return data;
 }

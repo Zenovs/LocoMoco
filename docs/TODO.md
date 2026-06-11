@@ -32,12 +32,12 @@ CHF/Marge/DB sind als nächste Welle markiert (brauchen Kostensätze).
 
 ### GL
 - ✅ `gl.auslastung` — **Auslastung & Verrechenbarkeit (Firma)** — erfasst/Soll, Verrechenbarkeit
-- ⬜ `gl.umsatz` — **Umsatz-Cockpit** 🔵 (Rechnungen) — Umsatz lfd. Monat, YTD, Trend
-- ⬜ `gl.rechnungen` — **Rechnungsstatus** 🔵 — offene/überfällige Rechnungen
-- ⬜ `gl.wip` — **Fakturierbar, nicht verrechnet** 🔵🟢
-- ⬜ `gl.margen` — **Margen & Deckungsbeitrag** 🟠 — Ø Projektmarge, DB pro Kunde
+- ✅ `gl.umsatz` — **Umsatz-Cockpit** — Umsatz Monat, YTD, 6-Monats-Trend
+- ✅ `gl.rechnungen` — **Rechnungsstatus** — offen / überfällig / bezahlt
+- ✅ `gl.wip` — **Fakturierbar, nicht verrechnet** — Projekte mit verr. Stunden ohne Rechnung
+- ✅ `gl.margen` — **Margen & Deckungsbeitrag** — Ø Marge, DB pro Kunde (via Kostensätze)
 - ⬜ `gl.umsatzverteilung` — **Umsatz-Verteilung** 🔵🟠 — pro MA / Kunde / Geschäftsfeld (= Projekt-Kategorie)
-- ⬜ `gl.vertrieb` — **Vertrieb / Pipeline** 🔵 (Offerten) — Volumen offen, Abschlussquote, Ø Summe
+- ✅ `gl.vertrieb` — **Vertrieb / Pipeline** — offenes Volumen, Ø Summe, Abschlussquote
 
 ### HR
 - ✅ `hr.leistung` — **Mitarbeiterleistung** — Erfasst, verrechenbar, Verr.-Quote, Auslastung · ⬜ Krankheit (Abwesenheiten), DB (Kostensätze)
@@ -64,6 +64,11 @@ CHF/Marge/DB sind als nächste Welle markiert (brauchen Kostensätze).
 
 ---
 
+## Kostensätze (für Margen/DB)
+- ✅ `lib/rates.ts` + `/api/admin/rates` + Admin-Tab „💸 Kostensätze" (Standardsatz + pro Person, CHF/h)
+- ⬜ Sätze automatisch aus MOCO ziehen (Feld noch unbekannt — bis dahin manuell im Admin)
+
 ## Offene Punkte / zu klären
+- ⚠️ Live am Server prüfen: stimmen Rechnungs-Status-Namen (sent/paid/overdue…), Offerten-Status & `project_id` auf Rechnungen?
 - ⚠️ Überstundensaldo: liefert MOCO einen Bestand, oder selbst aus erfasst − Soll kumulieren?
 - ⬜ Schwellenwerte des Warn-Centers im Admin-Panel konfigurierbar machen

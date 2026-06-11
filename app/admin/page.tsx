@@ -25,7 +25,7 @@ const input: React.CSSProperties = {
 const labelS: React.CSSProperties = { fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".04em", color: "var(--plum-soft)" };
 
 export default function AdminPage() {
-  const [tab, setTab] = useState<"users" | "roles" | "conn">("users");
+  const [tab, setTab] = useState<"users" | "roles" | "conn" | "rates">("users");
   const [denied, setDenied] = useState(false);
   const [roles, setRoles] = useState<Role[]>([]);
   const [caps, setCaps] = useState<Cap[]>([]);
@@ -56,6 +56,24 @@ export default function AdminPage() {
     const d = await res.json();
     if (!res.ok) return flash(d.error ?? "Fehler");
     setConnConfigured(true); flash("MOCO-Verbindung gespeichert");
+  }
+
+  // ----- Kostensätze (CHF/h, für Margen/DB) -----
+  const [rates, setRates] = useState<{ default: number; perUser: Record<string, number> }>({ default: 0, perUser: {} });
+  useEffect(() => {
+    fetch("/api/admin/rates").then((r) => r.json()).then((d: { rates?: { default: number; perUser: Record<string, number> } }) => {
+      if (d.rates) setRates(d.rates);
+    }).catch(() => {});
+  }, []);
+  async function saveDefaultRate(value: number | null) {
+    const res = await fetch("/api/admin/rates", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ default: value }) });
+    const d = await res.json(); if (!res.ok) return flash(d.error ?? "Fehler");
+    if (d.rates) setRates(d.rates); flash("Kostensatz gespeichert");
+  }
+  async function saveUserRate(userId: number, value: number | null) {
+    const res = await fetch("/api/admin/rates", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId, rate: value }) });
+    const d = await res.json(); if (!res.ok) return flash(d.error ?? "Fehler");
+    if (d.rates) setRates(d.rates); flash("Kostensatz gespeichert");
   }
 
   const cardKeys = cards.map((c) => c.key);
@@ -135,6 +153,7 @@ export default function AdminPage() {
           <button className={`chip ${tab === "users" ? "active" : ""}`} onClick={() => setTab("users")}>👤 Benutzer</button>
           <button className={`chip ${tab === "roles" ? "active" : ""}`} onClick={() => setTab("roles")}>🛡️ Rollen</button>
           <button className={`chip ${tab === "conn" ? "active" : ""}`} onClick={() => setTab("conn")}>🔌 Verbindung</button>
+          <button className={`chip ${tab === "rates" ? "active" : ""}`} onClick={() => setTab("rates")}>💸 Kostensätze</button>
         </div>
       </div>
       {msg && <div className="card" style={{ marginBottom: 16, fontWeight: 700, color: "var(--hotpink)" }}>{msg}</div>}
@@ -278,6 +297,44 @@ export default function AdminPage() {
               <input style={input} type="password" value={conn.apiKey} placeholder={connConfigured ? "Leer lassen = unverändert" : "API-Key (Admin-/Personal-Rechte)"} onChange={(e) => setConn({ ...conn, apiKey: e.target.value })} />
             </Field>
             <button className="chip active" style={{ alignSelf: "flex-start" }} onClick={saveConn}>Speichern & verbinden</button>
+          </div>
+        </section>
+      )}
+
+      {tab === "rates" && (
+        <section className="card" style={{ maxWidth: 640 }}>
+          <h2 style={{ fontSize: 17, color: "var(--plum)", marginBottom: 4 }}>Personalkostensätze (CHF / Stunde)</h2>
+          <p style={{ fontSize: 13, color: "var(--plum-soft)", fontWeight: 600, marginBottom: 16 }}>
+            Basis für Marge & Deckungsbeitrag. Der Standardsatz gilt für alle; pro Person kann er überschrieben werden. Leer = Standard.
+          </p>
+          <div style={{ display: "flex", alignItems: "flex-end", gap: 12, marginBottom: 20 }}>
+            <Field label="Standardsatz für alle">
+              <input
+                style={{ ...input, maxWidth: 160 }}
+                type="number" min={0} step={5}
+                defaultValue={rates.default || ""}
+                placeholder="z. B. 95"
+                onBlur={(e) => { const v = e.target.value.trim(); saveDefaultRate(v === "" ? null : Number(v)); }}
+              />
+            </Field>
+            <span style={{ fontSize: 12, color: "var(--plum-soft)", fontWeight: 600, paddingBottom: 10 }}>CHF/h · beim Verlassen des Felds gespeichert</span>
+          </div>
+
+          <div style={{ ...labelS, marginBottom: 8 }}>Pro Mitarbeiter (überschreibt Standard)</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {moco.length === 0 && <p style={{ fontSize: 13, color: "var(--plum-soft)", fontWeight: 600 }}>Keine MOCO-Personen geladen (Verbindung prüfen).</p>}
+            {moco.map((m) => (
+              <div key={m.id} style={{ display: "flex", alignItems: "center", gap: 12, justifyContent: "space-between", borderBottom: "1px dashed var(--chip-border)", paddingBottom: 8 }}>
+                <span style={{ fontWeight: 700, color: "var(--plum)" }}>{m.name}</span>
+                <input
+                  style={{ ...input, maxWidth: 130 }}
+                  type="number" min={0} step={5}
+                  defaultValue={rates.perUser[String(m.id)] ?? ""}
+                  placeholder={rates.default ? `Standard ${rates.default}` : "—"}
+                  onBlur={(e) => { const v = e.target.value.trim(); saveUserRate(m.id, v === "" ? null : Number(v)); }}
+                />
+              </div>
+            ))}
           </div>
         </section>
       )}

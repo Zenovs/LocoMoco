@@ -22,6 +22,11 @@ export const CARDS = [
   { key: "compare", label: "Monatsvergleich" },
   // Firmenweite Auswertungen (brauchen zusätzlich "Alle sehen" / data.all)
   { key: "gl.auslastung", label: "Auslastung & Verrechenbarkeit (Firma)" },
+  { key: "gl.umsatz", label: "Umsatz-Cockpit" },
+  { key: "gl.rechnungen", label: "Rechnungsstatus" },
+  { key: "gl.wip", label: "Fakturierbar, nicht verrechnet" },
+  { key: "gl.vertrieb", label: "Vertrieb / Pipeline (Offerten)" },
+  { key: "gl.margen", label: "Margen & Deckungsbeitrag" },
   { key: "prj.rentabilitaet", label: "Projekt-Rentabilität" },
   { key: "prj.rangliste", label: "Projekt-Ranglisten" },
   { key: "prj.status", label: "Projektstatus" },

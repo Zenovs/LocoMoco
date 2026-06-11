@@ -79,6 +79,35 @@ export interface MocoProjectReport {
   }>;
 }
 
+// Rechnungen (MOCO-Modul). Felder defensiv optional — je nach Account/Version.
+export interface MocoInvoice {
+  id: number;
+  identifier?: string;
+  date: string; // Rechnungsdatum YYYY-MM-DD
+  due_date?: string | null;
+  status?: string; // draft|created|sent|paid|partially_paid|overdue|ignored
+  title?: string;
+  net_total?: number;
+  gross_total?: number;
+  tax?: number;
+  discount?: number;
+  customer_id?: number;
+  customer?: { id: number; name: string };
+  project_id?: number | null;
+}
+
+// Offerten (MOCO-Modul).
+export interface MocoOffer {
+  id: number;
+  date: string; // YYYY-MM-DD
+  status?: string; // created|sent|accepted|partially_billed|billed|archived
+  title?: string;
+  net_total?: number;
+  gross_total?: number;
+  customer_id?: number;
+  customer?: { id: number; name: string };
+}
+
 export interface MocoConfig {
   subdomain: string;
   apiKey: string;
