@@ -19,7 +19,7 @@ const THEMES = [
 ];
 
 const input: React.CSSProperties = {
-  borderRadius: 12, border: "1.5px solid var(--chip-border)", background: "rgba(255,255,255,.7)",
+  borderRadius: 12, border: "1.5px solid var(--chip-border)", background: "var(--input-bg)",
   color: "var(--plum)", fontFamily: "var(--font-body)", padding: "8px 12px", fontWeight: 600, outline: "none",
 };
 const labelS: React.CSSProperties = { fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".04em", color: "var(--plum-soft)" };

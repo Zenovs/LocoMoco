@@ -55,7 +55,7 @@ export default function ProductivityRing({ productivity, delta, userName, month,
           }}
         >
           {/* inner white circle */}
-          <div style={{ position: "absolute", inset: 18, borderRadius: "50%", background: "#fff" }} />
+          <div style={{ position: "absolute", inset: 18, borderRadius: "50%", background: "var(--ring-inner)" }} />
           {/* value */}
           <div
             style={{

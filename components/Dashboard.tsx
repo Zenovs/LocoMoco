@@ -466,7 +466,7 @@ export default function Dashboard({ onSettingsChange }: Props) {
           cursor: pointer;
           border-radius: 14px;
           border: 1.5px solid #ffc4e3;
-          background: rgba(255,255,255,.75);
+          background: var(--input-bg);
           color: var(--plum);
           font-family: var(--font-body);
           font-weight: 700;

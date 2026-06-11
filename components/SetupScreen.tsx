@@ -14,7 +14,7 @@ const labelStyle: React.CSSProperties = {
 const inputStyle: React.CSSProperties = {
   borderRadius: "16px",
   border: "1.5px solid var(--chip-border)",
-  background: "rgba(255,255,255,.7)",
+  background: "var(--input-bg)",
   color: "var(--plum)",
   fontFamily: "var(--font-body)",
 };

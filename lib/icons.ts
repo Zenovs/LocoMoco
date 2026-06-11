@@ -50,10 +50,12 @@ const THEME_ICONS: Record<string, Partial<Record<IconKey, string>>> = {
     productivity: "🏑", nonBillable: "🥅", overBudget: "🚩", coach: "📣",
     target: "🥅", loading: "🏑", sparkleA: "🏑", sparkleB: "🟠", sparkleC: "⚪",
   },
+  // Dark Nerd: nur monochrome Outline-Glyphen (nehmen die helle Textfarbe an,
+  // kein buntes Emoji) -> Terminal/Outline-Look.
   darknerd: {
-    productivity: "📊", nonBillable: "🪲", overBudget: "🔥", sleeping: "💤",
-    coach: "🤖", hoursCheck: "⌨️", compare: "🆚", loading: "💻",
-    sparkleA: "👾", sparkleB: "💻", sparkleC: "🟩",
+    productivity: "▲", nonBillable: "✕", overBudget: "△", sleeping: "○",
+    coach: "❯", hoursCheck: "◷", compare: "⇄", target: "◎", loading: "❯",
+    sparkleA: "·", sparkleB: "✦", sparkleC: "+",
   },
   ferien: {
     productivity: "☀️", nonBillable: "🍹", overBudget: "🌋", sleeping: "🌴",
