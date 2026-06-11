@@ -13,6 +13,14 @@ export NVM_DIR="$HOME/.nvm"
 # Node 22 aktivieren; falls (noch) nicht vorhanden, einmalig nachinstallieren
 nvm use 22 --silent 2>/dev/null || nvm install 22 2>/dev/null || true
 
+# pnpm zuverlässig auffindbar machen. Je nach Setup liegt es bei Homebrews
+# node@22 (NICHT im brew-shellenv-PATH) oder wird via corepack bereitgestellt.
+# Ohne das scheitert "exec pnpm start" mit "pnpm: not found".
+export PATH="$PATH:/opt/homebrew/opt/node@22/bin:/usr/local/opt/node@22/bin"
+if ! command -v pnpm >/dev/null 2>&1; then
+  command -v corepack >/dev/null 2>&1 && corepack enable pnpm >/dev/null 2>&1 || true
+fi
+
 APP_DIR="$HOME/.loco-moco/app"
 PORT=4577
 
