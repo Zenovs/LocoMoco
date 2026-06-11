@@ -12,6 +12,7 @@ export const CAPABILITIES = [
 ] as const;
 
 export const CARDS = [
+  // Persönliche Karten (pro Mitarbeiter)
   { key: "productivity", label: "Produktivität" },
   { key: "hoursCheck", label: "Erfassungs-Check" },
   { key: "nonBillable", label: "Nicht verrechenbar" },
@@ -19,6 +20,15 @@ export const CARDS = [
   { key: "sleeping", label: "Schläferprojekte" },
   { key: "coach", label: "Loco-Coach" },
   { key: "compare", label: "Monatsvergleich" },
+  // Firmenweite Auswertungen (brauchen zusätzlich "Alle sehen" / data.all)
+  { key: "gl.auslastung", label: "Auslastung & Verrechenbarkeit (Firma)" },
+  { key: "prj.rentabilitaet", label: "Projekt-Rentabilität" },
+  { key: "prj.rangliste", label: "Projekt-Ranglisten" },
+  { key: "prj.status", label: "Projektstatus" },
+  { key: "hr.leistung", label: "Mitarbeiterleistung" },
+  { key: "hr.rangliste", label: "Team-Rangliste" },
+  { key: "kd.wirtschaft", label: "Kunden-Wirtschaftlichkeit" },
+  { key: "kd.rangliste", label: "Kunden-Ranglisten" },
 ] as const;
 
 export const ALL_CAPABILITIES: string[] = CAPABILITIES.map((c) => c.key);

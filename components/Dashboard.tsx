@@ -17,6 +17,7 @@ import MonthCompare, { type MonthSlot } from "./MonthCompare";
 import LoadingScreen from "./LoadingScreen";
 import CoachPanel from "./CoachPanel";
 import HoursCheck from "./HoursCheck";
+import CompanySection from "./CompanySection";
 
 interface DashboardData {
   users: MocoUser[];
@@ -437,6 +438,9 @@ export default function Dashboard() {
             Noch nichts gebucht diesen Monat 🌸
           </p>
         )}
+
+        {/* Firmenweite Auswertungen (nur mit "Alle sehen" / data.all freigeschaltet) */}
+        <CompanySection year={year} month={month} refreshTick={refreshTick} showCard={showCard} />
 
         <footer style={{ textAlign: "center", marginTop: 40, color: "var(--plum-soft)", fontWeight: 600, fontSize: 13 }}>
           made with 💅 by <span style={{ color: "var(--hotpink)" }}>wireon</span> · Daten live aus MOCO
