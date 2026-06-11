@@ -3,6 +3,7 @@ import type { MocoActivity, MocoProject } from "@/types/moco";
 export interface SleepingProject {
   projectId: number;
   projectName: string;
+  customerName: string | null;
   lastActivityDate: string | null;
   daysSinceActivity: number;
 }
@@ -13,6 +14,9 @@ export function calcSleepingProjects(
   thresholdDays = 60
 ): SleepingProject[] {
   const activeProjectIds = new Set(recentActivities.map((a) => a.project.id));
+
+  // Abonnement-Projekte werden grundsätzlich ignoriert (laufen dauerhaft).
+  const isAbo = (name: string) => name.toLowerCase().includes("abonnement");
 
   // find last activity date per project from recentActivities
   const lastDateByProject = new Map<number, string>();
@@ -27,7 +31,7 @@ export function calcSleepingProjects(
   today.setHours(0, 0, 0, 0);
 
   return allProjects
-    .filter((p) => p.active && !activeProjectIds.has(p.id))
+    .filter((p) => p.active && !activeProjectIds.has(p.id) && !isAbo(p.name))
     .map((p) => {
       const lastDate = lastDateByProject.get(p.id) ?? null;
       const daysSince = lastDate
@@ -39,6 +43,7 @@ export function calcSleepingProjects(
       return {
         projectId: p.id,
         projectName: p.name,
+        customerName: p.customer?.name ?? null,
         lastActivityDate: lastDate,
         daysSinceActivity: daysSince,
       };

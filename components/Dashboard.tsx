@@ -331,6 +331,7 @@ export default function Dashboard({ onSettingsChange }: Props) {
           .responsive-grid { grid-template-columns: 1fr !important; }
         }
         body.exporting .no-print { display: none !important; }
+        body.exporting { background: #fff4fa !important; }
         @media print {
           .no-print { display: none !important; }
           body { background: #fff !important; }

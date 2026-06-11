@@ -60,6 +60,11 @@ export default function SleepingList({ projects }: Props) {
                 <b style={{ fontFamily: "Fredoka, sans-serif", fontSize: 14, display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {p.projectName}
                 </b>
+                {p.customerName && (
+                  <span style={{ display: "block", fontSize: 12.5, color: "var(--hotpink)", fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    👤 {p.customerName}
+                  </span>
+                )}
                 {p.lastActivityDate && (
                   <span style={{ display: "block", fontSize: 12, color: "var(--plum-soft)", fontWeight: 600 }}>
                     letzte Buchung: {new Date(p.lastActivityDate).toLocaleDateString("de-CH", { day: "numeric", month: "long", year: "numeric" })}

@@ -15,6 +15,9 @@
   --holo: linear-gradient(110deg,#ff8fd0 0%,#c9a7ff 30%,#a9d8ff 55%,#ffd86b 78%,#ff8fd0 100%);
   --card-glow: 0 18px 50px -12px rgba(255,79,163,.45);
   --radius: 28px;
+  /* App ist bewusst nur hell — verhindert dunkle Formular-/Steuerelemente im
+     Dark Mode (u. a. im exportierten PDF). */
+  color-scheme: light;
 }
 
 * { box-sizing: border-box; }

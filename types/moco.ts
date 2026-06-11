@@ -28,6 +28,7 @@ export interface MocoProject {
   finish_date?: string | null;
   tags?: string[];
   leader?: MocoUser;
+  customer?: { id: number; name: string };
 }
 
 export interface MocoTask {

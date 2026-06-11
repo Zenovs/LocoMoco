@@ -40,6 +40,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         ucc.add(self, name: "locomoco") // JS-Brücke fürs Teilen/PDF
         cfg.userContentController = ucc
         webView = WKWebView(frame: frame, configuration: cfg)
+        // Immer helle Darstellung erzwingen — sonst rendert WKWebView (und das
+        // exportierte PDF) im Dark Mode auf dunklem Grund.
+        webView.appearance = NSAppearance(named: .aqua)
         webView.navigationDelegate = self
         webView.autoresizingMask = [.width, .height]
         container.addSubview(webView)
