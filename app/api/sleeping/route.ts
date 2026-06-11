@@ -1,16 +1,26 @@
 import { NextResponse } from "next/server";
 import { readConfig } from "@/lib/config";
 import { getActivities, getProjects } from "@/lib/moco/client";
-import { calcSleepingProjects } from "@/lib/metrics/sleeping";
+import { calcSleepingProjects, type SleepingProject } from "@/lib/metrics/sleeping";
 import { subtractDays, toISODate } from "@/lib/metrics/dates";
+import { cacheGet, cacheSet } from "@/lib/moco/cache";
 
-// Schläferprojekte: global (unabhängig von User/Monat) und teuer (65 Tage
-// firmenweite Aktivitäten). Wird vom Dashboard nachgeladen, nachdem die
-// schnellen Metriken schon stehen.
+// Schläferprojekte: global (unabhängig von User/Monat) und teuer (95 Tage
+// firmenweite Aktivitäten, ~50 API-Seiten). Der Status ändert sich kaum, daher
+// wird das Ergebnis lange gecacht (6h, auch auf Platte) — so zahlt man die
+// einmaligen ~20s nur ~1× pro Tag, danach ist es (auch nach App-Neustart) sofort da.
+const SLEEPING_TTL_MS = 6 * 60 * 60 * 1000;
+
 export async function GET() {
   const config = readConfig();
   if (!config) {
     return NextResponse.json({ error: "Nicht konfiguriert." }, { status: 401 });
+  }
+
+  const cacheKey = `sleeping-result:${config.subdomain}`;
+  const cached = cacheGet<SleepingProject[]>(cacheKey);
+  if (cached) {
+    return NextResponse.json({ sleeping: cached });
   }
 
   try {
@@ -23,6 +33,7 @@ export async function GET() {
       getProjects(config),
     ]);
     const sleeping = calcSleepingProjects(recentActivities, projects);
+    cacheSet(cacheKey, sleeping, SLEEPING_TTL_MS);
     return NextResponse.json({ sleeping });
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Unbekannter Fehler.";
