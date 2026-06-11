@@ -85,6 +85,29 @@ body {
   pointer-events: none;
 }
 
+/* ── PDF-/Druck-Export ─────────────────────────────────────
+   WKWebViews PDF-Export kann backdrop-filter (Glaseffekt) nicht und rendert
+   die Karten sonst dunkelgrau. Beim Export daher solide, helle Karten ohne
+   Glaseffekt und ohne den holografischen ::before-Rand. */
+body.exporting .card,
+body.exporting .chip {
+  background: #ffffff !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  box-shadow: none !important;
+  border-color: #f3d4e6 !important;
+}
+body.exporting .card::before { display: none !important; }
+@media print {
+  .card, .chip {
+    background: #ffffff !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+    box-shadow: none !important;
+  }
+  .card::before { display: none !important; }
+}
+
 /* ── chip ──────────────────────────────────────────────── */
 .chip {
   display: inline-flex;
