@@ -12,13 +12,70 @@ let START_SH = "\(HOME)/.loco-moco/app/scripts/start.sh"
 let LOG_FILE = "\(HOME)/.loco-moco/app.log"
 let URL_STRING = "http://localhost:\(PORT)/"
 
+// Animierte Start-Splash (girly), wird sofort im Fenster gezeigt, bis der
+// lokale Server bereit ist — gleiche Optik wie die Lade-Animation im Dashboard.
+let SPLASH_HTML = """
+<!doctype html><html><head><meta charset="utf-8"><meta name="color-scheme" content="light">
+<style>
+  html,body{margin:0;height:100%;overflow:hidden;font-family:-apple-system,'Quicksand',sans-serif}
+  body{display:flex;flex-direction:column;align-items:center;justify-content:center;
+    background:radial-gradient(900px 500px at 15% -10%,#ffe1f1 0,transparent 55%),
+    radial-gradient(700px 600px at 95% 5%,rgba(231,222,255,.95) 0,transparent 50%),
+    linear-gradient(160deg,#fff0f8 0%,#fde7ff 45%,#eef0ff 100%);color:#7a4d6e}
+  .stage{position:relative;width:150px;height:150px;margin-bottom:26px}
+  .ring{position:absolute;inset:0;border-radius:50%;filter:blur(8px);opacity:.6;
+    background:conic-gradient(from 0deg,#ff8fd0,#c9a7ff,#a9d8ff,#ffd86b,#ff8fd0);
+    animation:spin 3.2s linear infinite,breathe 2.4s ease-in-out infinite}
+  .egg{position:absolute;inset:0;display:grid;place-items:center;font-size:74px;
+    animation:bounce 1.5s cubic-bezier(.5,0,.5,1) infinite;filter:drop-shadow(0 8px 14px rgba(255,79,163,.4))}
+  .orbit{position:absolute;inset:0;animation:spin 6s linear infinite}
+  .orbit span{position:absolute;top:50%;left:50%;font-size:24px}
+  .o1{transform:rotate(0deg) translateX(82px) rotate(0deg)}
+  .o2{transform:rotate(120deg) translateX(82px) rotate(-120deg)}
+  .o3{transform:rotate(240deg) translateX(82px) rotate(-240deg)}
+  .title{font-family:'Fredoka',sans-serif;font-weight:700;font-size:1.6rem;margin:0 0 16px;
+    background:linear-gradient(110deg,#ff8fd0,#c9a7ff,#a9d8ff,#ffd86b,#ff8fd0);background-size:220% 220%;
+    -webkit-background-clip:text;background-clip:text;color:transparent;animation:shim 4s ease-in-out infinite}
+  .track{width:230px;max-width:70vw;height:10px;border-radius:999px;background:rgba(255,143,208,.18);overflow:hidden;margin-bottom:22px}
+  .fill{height:100%;width:42%;border-radius:999px;background:linear-gradient(90deg,#ff8fd0,#ff2e95,#c9a7ff);
+    box-shadow:0 0 12px rgba(255,79,163,.6);animation:slide 1.5s ease-in-out infinite}
+  .wis{max-width:440px;text-align:center;font-weight:600;font-size:1.02rem;min-height:48px;padding:0 16px;animation:fade .6s ease both}
+  @keyframes bounce{0%,100%{transform:translateY(4px) scale(1)}50%{transform:translateY(-10px) scale(1.06)}}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  @keyframes breathe{0%,100%{opacity:.45}50%{opacity:.8}}
+  @keyframes shim{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
+  @keyframes slide{0%{transform:translateX(-120%)}100%{transform:translateX(360%)}}
+  @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+</style></head><body>
+  <div class="stage">
+    <div class="ring"></div>
+    <div class="orbit"><span class="o1">✨</span><span class="o2">💖</span><span class="o3">🩷</span></div>
+    <div class="egg">🍳</div>
+  </div>
+  <h1 class="title">Loco Moco startet…</h1>
+  <div class="track"><div class="fill"></div></div>
+  <p class="wis" id="w"></p>
+<script>
+  var W=["Nicht jede Stunde muss verrechenbar sein — aber die meisten schon. 😇",
+  "Erst der Kaffee, dann die Deadline. ☕✨","Ordnung ist das halbe Leben. Die andere Hälfte ist Glitzer. 💅",
+  "Wer Zeit erfasst, hat sie nicht verloren — nur dokumentiert. 📊",
+  "Multitasking ist, wenn man gleichzeitig nichts fertig macht. 🦄",
+  "Done ist das neue Perfekt. 💖","Glitzer macht alles besser — sogar Excel. ✨",
+  "Pausen sind keine verlorene Zeit, sondern Investitionen in Glanz. 🌸",
+  "Kleine Schritte sind auch Schritte. Mit Absätzen sowieso. 👠"];
+  var el=document.getElementById('w'),i=Math.floor(Date.now()/1000)%W.length;
+  function show(){el.style.animation='none';el.offsetHeight;el.style.animation='fade .6s ease both';el.textContent=W[i];i=(i+1)%W.length;}
+  show();setInterval(show,7000);
+</script></body></html>
+"""
+
 final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, WKScriptMessageHandler {
     var window: NSWindow!
     var webView: WKWebView!
     var overlay: NSView!
-    var statusLabel: NSTextField!
     var startedServer = false
     var didLoad = false
+    var realLoadStarted = false
 
     func applicationDidFinishLaunching(_ note: Notification) {
         setupMenu()
@@ -48,31 +105,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         webView.autoresizingMask = [.width, .height]
         container.addSubview(webView)
 
-        // Rosa Lade-Overlay (girly), bis das Dashboard bereit ist
+        // Schlichtes rosa Overlay nur als Anti-Flash, bis die animierte Splash
+        // (im WebView) gerendert ist — danach blendet es weg.
         overlay = NSView(frame: frame)
         overlay.wantsLayer = true
-        overlay.layer?.backgroundColor = NSColor(calibratedRed: 1.0, green: 0.78, blue: 0.90, alpha: 1).cgColor
+        overlay.layer?.backgroundColor = NSColor(calibratedRed: 1.0, green: 0.94, blue: 0.97, alpha: 1).cgColor
         overlay.autoresizingMask = [.width, .height]
-
-        let egg = NSTextField(labelWithString: "🍳")
-        egg.font = NSFont.systemFont(ofSize: 88)
-        egg.alignment = .center
-        egg.frame = NSRect(x: 0, y: frame.height/2 + 10, width: frame.width, height: 110)
-        egg.autoresizingMask = [.width, .minYMargin, .maxYMargin]
-        overlay.addSubview(egg)
-
-        statusLabel = NSTextField(labelWithString: "Loco Moco startet…")
-        statusLabel.font = NSFont.systemFont(ofSize: 20, weight: .semibold)
-        statusLabel.textColor = NSColor(calibratedRed: 0.55, green: 0.10, blue: 0.35, alpha: 1)
-        statusLabel.alignment = .center
-        statusLabel.frame = NSRect(x: 0, y: frame.height/2 - 36, width: frame.width, height: 30)
-        statusLabel.autoresizingMask = [.width, .minYMargin, .maxYMargin]
-        overlay.addSubview(statusLabel)
         container.addSubview(overlay)
 
         window.contentView = container
         window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
+
+        // Animierte Start-Splash sofort anzeigen
+        webView.loadHTMLString(SPLASH_HTML, baseURL: nil)
 
         bootstrap()
     }
@@ -196,16 +242,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
             if !self.serverReachable() {
                 self.launchServer()
             }
-            // bis zu 5 Min warten (erster Start baut evtl. neu)
+            // eng takten, um "bereit" früh zu erwischen (bis zu 5 Min Budget)
             var tries = 0
-            while !self.serverReachable() && tries < 600 {
-                Thread.sleep(forTimeInterval: 0.5)
+            while !self.serverReachable() && tries < 1200 {
+                Thread.sleep(forTimeInterval: 0.25)
                 tries += 1
-                if tries == 8 {
-                    DispatchQueue.main.async { self.statusLabel.stringValue = "Server wird gestartet…" }
-                }
             }
             DispatchQueue.main.async {
+                self.realLoadStarted = true
                 self.webView.load(URLRequest(url: URL(string: URL_STRING)!))
             }
         }
@@ -247,13 +291,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
 
     // MARK: WKNavigationDelegate
     func webView(_ wv: WKWebView, didFinish navigation: WKNavigation!) {
-        didLoad = true
-        NSAnimationContext.runAnimationGroup { ctx in
-            ctx.duration = 0.4
-            overlay.animator().alphaValue = 0
-        } completionHandler: {
-            self.overlay.isHidden = true
+        // Anti-Flash-Overlay einmalig wegblenden, sobald die Splash steht
+        if !overlay.isHidden {
+            NSAnimationContext.runAnimationGroup({ ctx in
+                ctx.duration = 0.4
+                overlay.animator().alphaValue = 0
+            }, completionHandler: { self.overlay.isHidden = true })
         }
+        if wv.url?.host == "localhost" { didLoad = true }
     }
 
     func webView(_ wv: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
@@ -263,9 +308,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         retryLoad()
     }
     func retryLoad() {
-        guard !didLoad else { return }
-        statusLabel.stringValue = "Noch nicht bereit – neuer Versuch…"
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+        // Nur die echte Dashboard-Seite erneut versuchen (nicht die Splash)
+        guard realLoadStarted && !didLoad else { return }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
             self.webView.load(URLRequest(url: URL(string: URL_STRING)!))
         }
     }
