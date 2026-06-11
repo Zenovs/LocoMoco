@@ -102,5 +102,3 @@ pnpm build
 <!-- Future: Upgrade auf Tauri v2 mit echtem Auto-Updater + Code-Signing möglich.
      Dann: src-tauri/ Verzeichnis anlegen, tauri.conf.json mit updater.endpoints konfigurieren,
      GitHub Releases mit pnpm tauri build --ci ausliefern. Aktuell nicht nötig für lokalen Use-Case. -->
-
-<!-- build: auto-update test -->
