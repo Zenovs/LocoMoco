@@ -1,9 +1,10 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { readConfig } from "@/lib/config";
 import { getActivities, getProjects } from "@/lib/moco/client";
 import { calcSleepingProjects, type SleepingProject } from "@/lib/metrics/sleeping";
 import { subtractDays, toISODate } from "@/lib/metrics/dates";
 import { cacheGet, cacheSet } from "@/lib/moco/cache";
+import { requireDataAll } from "@/lib/access";
 
 // Schläferprojekte: global (unabhängig von User/Monat) und teuer (95 Tage
 // firmenweite Aktivitäten, ~50 API-Seiten). Der Status ändert sich kaum, daher
@@ -11,11 +12,14 @@ import { cacheGet, cacheSet } from "@/lib/moco/cache";
 // einmaligen ~20s nur ~1× pro Tag, danach ist es (auch nach App-Neustart) sofort da.
 const SLEEPING_TTL_MS = 6 * 60 * 60 * 1000;
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   const config = readConfig();
   if (!config) {
     return NextResponse.json({ error: "Nicht konfiguriert." }, { status: 401 });
   }
+  // Firmenweite Sicht — nur mit Freigabe "alle sehen".
+  const gate = await requireDataAll(req);
+  if ("error" in gate) return gate.error;
 
   const cacheKey = `sleeping-result:${config.subdomain}`;
   const cached = cacheGet<SleepingProject[]>(cacheKey);

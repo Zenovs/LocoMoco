@@ -60,6 +60,31 @@ export default function Dashboard({ onSettingsChange }: Props) {
   // Schläferprojekte: lazy nachgeladen
   const [sleeping, setSleeping] = useState<SleepingProject[] | null>(null);
 
+  // Auth-Status (wer ist angemeldet, welche Freigaben/Karten)
+  const [auth, setAuth] = useState<{
+    enabled: boolean;
+    user: { name: string; role: string } | null;
+    caps: string[];
+    cards: string[];
+  }>({ enabled: false, user: null, caps: [], cards: [] });
+
+  useEffect(() => {
+    fetch("/api/auth/me")
+      .then((r) => r.json())
+      .then((d: { authEnabled: boolean; user: { name: string; role: string } | null; capabilities?: string[]; cards?: string[] }) =>
+        setAuth({ enabled: d.authEnabled, user: d.user, caps: d.capabilities ?? [], cards: d.cards ?? [] })
+      )
+      .catch(() => {});
+  }, []);
+
+  // Eine Karte zeigen? Ohne Auth = alles; mit Auth = nur freigegebene Karten.
+  const showCard = (key: string) => !auth.enabled || auth.cards.includes(key);
+
+  async function logout() {
+    await fetch("/api/auth/logout", { method: "POST" }).catch(() => {});
+    window.location.href = "/login";
+  }
+
   // Mindestziele pro Mitarbeiter (userId -> %)
   const [targets, setTargets] = useState<Record<string, number>>({});
 
@@ -137,8 +162,13 @@ export default function Dashboard({ onSettingsChange }: Props) {
 
   useEffect(() => { loadDashboard(); }, [loadDashboard, refreshTick]);
 
-  // Schläferprojekte separat laden (global, unabhängig von User/Monat)
+  // Schläferprojekte separat laden (global). Nur, wenn die Karte freigegeben ist
+  // (sonst liefert /api/sleeping ohnehin 403).
   useEffect(() => {
+    if (auth.enabled && !auth.cards.includes("sleeping")) {
+      setSleeping([]);
+      return;
+    }
     let cancelled = false;
     setSleeping(null);
     fetch("/api/sleeping")
@@ -150,7 +180,7 @@ export default function Dashboard({ onSettingsChange }: Props) {
         if (!cancelled) setSleeping([]);
       });
     return () => { cancelled = true; };
-  }, [refreshTick]);
+  }, [refreshTick, auth.enabled, auth.cards]);
 
   // Daten frisch von MOCO holen (Cache leeren)
   const handleRefresh = useCallback(() => {
@@ -262,6 +292,15 @@ export default function Dashboard({ onSettingsChange }: Props) {
             <button onClick={onSettingsChange} className="chip" aria-label="Einstellungen" style={{ fontSize: "0.95rem" }}>
               ⚙️
             </button>
+            {auth.enabled && auth.caps.includes("users.manage") && (
+              <a href="/admin" className="chip" style={{ textDecoration: "none", fontWeight: 700 }}>🛠️ Admin</a>
+            )}
+            {auth.enabled && auth.user && (
+              <>
+                <span className="chip" style={{ cursor: "default" }} title={`Rolle: ${auth.user.role}`}>👤 {auth.user.name}</span>
+                <button onClick={logout} className="chip" style={{ fontWeight: 700 }}>Abmelden</button>
+              </>
+            )}
           </div>
         </header>
 
@@ -291,15 +330,17 @@ export default function Dashboard({ onSettingsChange }: Props) {
             </select>
           </Field>
 
-          <button
-            onClick={() => setCompare((c) => !c)}
-            className={`chip ${compare ? "active" : ""}`}
-            style={{ height: 44 }}
-          >
-            {compare ? "✓ " : "⚖️ "}Vergleichen
-          </button>
+          {showCard("compare") && (
+            <button
+              onClick={() => setCompare((c) => !c)}
+              className={`chip ${compare ? "active" : ""}`}
+              style={{ height: 44 }}
+            >
+              {compare ? "✓ " : "⚖️ "}Vergleichen
+            </button>
+          )}
 
-          {compare && (
+          {compare && showCard("compare") && (
             <>
               <span style={{ alignSelf: "center", fontWeight: 700, color: "var(--plum-soft)" }}>vs.</span>
               <Field label="Vergleichsmonat">
@@ -329,7 +370,7 @@ export default function Dashboard({ onSettingsChange }: Props) {
         {/* Dashboard */}
         {!loading && data && selectedUser && (
           <>
-            {compare && (
+            {compare && showCard("compare") && (
               cmpData ? (
                 <div style={{ marginBottom: 22 }}>
                   <MonthCompare a={cmpData.a} b={cmpData.b} />
@@ -342,28 +383,34 @@ export default function Dashboard({ onSettingsChange }: Props) {
             )}
 
             {/* Top row */}
-            <div style={{ display: "grid", gridTemplateColumns: "1.15fr 1fr", gap: 22 }} className="responsive-grid">
-              <ProductivityRing
-                productivity={data.productivity}
-                delta={data.productivityDelta}
-                userName={selectedUser.firstname}
-                month={MONTHS[month - 1]}
-                year={year}
-                target={selectedTarget}
-                onSetTarget={(v) => selectedUserId != null && setTargetFor(selectedUserId, v)}
-              />
-              <NonBillableChart projects={data.nonBillable} userName={selectedUser.firstname} />
-            </div>
+            {(showCard("productivity") || showCard("nonBillable")) && (
+              <div style={{ display: "grid", gridTemplateColumns: showCard("productivity") && showCard("nonBillable") ? "1.15fr 1fr" : "1fr", gap: 22 }} className="responsive-grid">
+                {showCard("productivity") && (
+                  <ProductivityRing
+                    productivity={data.productivity}
+                    delta={data.productivityDelta}
+                    userName={selectedUser.firstname}
+                    month={MONTHS[month - 1]}
+                    year={year}
+                    target={selectedTarget}
+                    onSetTarget={(v) => selectedUserId != null && setTargetFor(selectedUserId, v)}
+                  />
+                )}
+                {showCard("nonBillable") && (
+                  <NonBillableChart projects={data.nonBillable} userName={selectedUser.firstname} />
+                )}
+              </div>
+            )}
 
             {/* Erfassungs-Check: Soll bis heute vs. erfasst + vergessene Tage */}
-            {data.hoursCheck && (
+            {showCard("hoursCheck") && data.hoursCheck && (
               <div style={{ marginTop: 22 }}>
                 <HoursCheck check={data.hoursCheck} userName={selectedUser.firstname} />
               </div>
             )}
 
             {/* Coach-Panel, wenn unter Mindestziel */}
-            {advice?.belowTarget && selectedTarget !== null && (
+            {showCard("coach") && advice?.belowTarget && selectedTarget !== null && (
               <div style={{ marginTop: 22 }}>
                 <CoachPanel
                   userName={selectedUser.firstname}
@@ -376,16 +423,19 @@ export default function Dashboard({ onSettingsChange }: Props) {
             )}
 
             {/* Bottom row */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 22, marginTop: 22 }} className="responsive-grid">
-              <OverBudgetList projects={data.overBudget} />
-              {sleeping === null ? (
-                <div className="card" style={{ display: "flex", alignItems: "center", justifyContent: "center", color: "var(--plum-soft)", fontWeight: 600, minHeight: 160 }}>
-                  <span className="animate-pulse">😴 Schläferprojekte werden gesucht…</span>
-                </div>
-              ) : (
-                <SleepingList projects={sleeping} />
-              )}
-            </div>
+            {(showCard("overBudget") || showCard("sleeping")) && (
+              <div style={{ display: "grid", gridTemplateColumns: showCard("overBudget") && showCard("sleeping") ? "1fr 1fr" : "1fr", gap: 22, marginTop: 22 }} className="responsive-grid">
+                {showCard("overBudget") && <OverBudgetList projects={data.overBudget} />}
+                {showCard("sleeping") &&
+                  (sleeping === null ? (
+                    <div className="card" style={{ display: "flex", alignItems: "center", justifyContent: "center", color: "var(--plum-soft)", fontWeight: 600, minHeight: 160 }}>
+                      <span className="animate-pulse">😴 Schläferprojekte werden gesucht…</span>
+                    </div>
+                  ) : (
+                    <SleepingList projects={sleeping} />
+                  ))}
+              </div>
+            )}
           </>
         )}
 

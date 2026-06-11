@@ -3,6 +3,7 @@ import { readConfig } from "@/lib/config";
 import { getActivities, getEmployments } from "@/lib/moco/client";
 import { calcProductivity } from "@/lib/metrics/productivity";
 import { getMonthRange } from "@/lib/metrics/dates";
+import { scopedUserId } from "@/lib/access";
 
 // Leichtgewichtige Monats-Kennzahlen für den Monatsvergleich. Nutzt nur
 // Aktivitäten + Anstellungen (beide gecacht) — kein Projekt-Report, keine
@@ -14,9 +15,11 @@ export async function GET(req: NextRequest) {
   }
 
   const sp = req.nextUrl.searchParams;
-  const userId = Number(sp.get("userId"));
   const year = Number(sp.get("year") ?? new Date().getFullYear());
   const month = Number(sp.get("month") ?? new Date().getMonth() + 1);
+  const scope = await scopedUserId(req, Number(sp.get("userId")));
+  if ("error" in scope) return scope.error;
+  const userId = scope.userId;
   if (!userId) {
     return NextResponse.json({ error: "userId fehlt." }, { status: 400 });
   }

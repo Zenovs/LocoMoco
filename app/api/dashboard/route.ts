@@ -12,6 +12,7 @@ import { calcOverBudgetProjects } from "@/lib/metrics/overBudget";
 import { calcTimeWasters } from "@/lib/metrics/timeWasters";
 import { calcHoursCheck } from "@/lib/metrics/hoursCheck";
 import { addMonths, getMonthRange } from "@/lib/metrics/dates";
+import { scopedUserId } from "@/lib/access";
 import type { MocoProject, MocoProjectReport } from "@/types/moco";
 
 export async function GET(req: NextRequest) {
@@ -21,10 +22,13 @@ export async function GET(req: NextRequest) {
   }
 
   const sp = req.nextUrl.searchParams;
-  const userId = Number(sp.get("userId"));
   const year = Number(sp.get("year") ?? new Date().getFullYear());
   const month = Number(sp.get("month") ?? new Date().getMonth() + 1);
 
+  // Datenscoping: nur eigene Person, außer man hat "alle sehen".
+  const scope = await scopedUserId(req, Number(sp.get("userId")));
+  if ("error" in scope) return scope.error;
+  const userId = scope.userId;
   if (!userId) {
     return NextResponse.json({ error: "userId fehlt." }, { status: 400 });
   }
