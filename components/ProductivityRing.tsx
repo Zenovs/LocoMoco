@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { ProductivityResult } from "@/lib/metrics/productivity";
+import { useIcon } from "./ThemeContext";
 
 interface Props {
   productivity: ProductivityResult;
@@ -18,6 +19,7 @@ export default function ProductivityRing({ productivity, delta, userName, month,
   const deltaSign = delta > 0 ? "▲ +" : delta < 0 ? "▼ " : "";
   const deltaPositive = delta >= 0;
   const belowTarget = target !== null && productivity.productivityPct < target;
+  const ic = useIcon();
 
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(String(target ?? 75));
@@ -31,7 +33,7 @@ export default function ProductivityRing({ productivity, delta, userName, month,
   return (
     <section className="card">
       <h2 style={{ fontSize: 18, color: "var(--plum)", marginBottom: 4 }}>
-        💖 Monatliche Produktivität
+        {ic("productivity")} Monatliche Produktivität
       </h2>
       <p style={{ fontSize: 12.5, color: "var(--plum-soft)", fontWeight: 600, marginBottom: 20 }}>
         verrechenbare ÷ erfasste Stunden · {month} {year}
@@ -146,7 +148,7 @@ export default function ProductivityRing({ productivity, delta, userName, month,
           <div style={{ marginTop: 16, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
             {editing ? (
               <>
-                <span style={{ fontSize: 13, fontWeight: 700, color: "var(--plum-soft)" }}>🎯 Mindestziel</span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: "var(--plum-soft)" }}>{ic("target")} Mindestziel</span>
                 <input
                   type="number"
                   min={0}
@@ -167,7 +169,7 @@ export default function ProductivityRing({ productivity, delta, userName, month,
                 className="chip"
                 style={{ fontWeight: 700 }}
               >
-                🎯 {target !== null ? `Mindestziel: ${target}% · ✏️ ändern` : "Mindestziel festlegen"}
+                {ic("target")} {target !== null ? `Mindestziel: ${target}% · ✏️ ändern` : "Mindestziel festlegen"}
               </button>
             )}
           </div>

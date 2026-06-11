@@ -1,6 +1,7 @@
 "use client";
 
 import type { NonBillableProject } from "@/lib/metrics/nonBillable";
+import { useIcon } from "./ThemeContext";
 
 interface Props {
   projects: NonBillableProject[];
@@ -10,10 +11,11 @@ interface Props {
 const PIP_COLORS = ["#ff4fa3", "#c9a7ff", "#a9b8ff", "#ffd86b", "#9af7d8"];
 
 export default function NonBillableChart({ projects, userName }: Props) {
+  const ic = useIcon();
   return (
     <section className="card">
       <h2 style={{ fontSize: 18, color: "var(--plum)", marginBottom: 4 }}>
-        🩷 Top 5 — nicht verrechenbar
+        {ic("nonBillable")} Top 5 — nicht verrechenbar
       </h2>
       <p style={{ fontSize: 12.5, color: "var(--plum-soft)", fontWeight: 600, marginBottom: 20 }}>
         Projekte mit den meisten internen (nicht verrechenbaren) Stunden

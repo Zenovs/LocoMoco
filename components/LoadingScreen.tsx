@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useIcon } from "./ThemeContext";
 
 const WISDOMS = [
   "Nicht jede Stunde muss verrechenbar sein — aber die meisten schon. 😇",
@@ -23,6 +24,7 @@ const WISDOMS = [
 
 export default function LoadingScreen() {
   const [idx, setIdx] = useState(0);
+  const ic = useIcon();
 
   useEffect(() => {
     setIdx(Math.floor(performance.now()) % WISDOMS.length);
@@ -37,13 +39,13 @@ export default function LoadingScreen() {
       <div style={{ position: "relative", width: 150, height: 150, marginBottom: 26 }}>
         {/* pulsierender Glanz-Ring */}
         <div className="lm-ring" />
-        {/* hüpfendes Spiegelei */}
-        <div className="lm-egg">🍳</div>
-        {/* umkreisende Funkel/Herzchen */}
+        {/* hüpfendes Theme-Icon */}
+        <div className="lm-egg">{ic("loading")}</div>
+        {/* umkreisende Funkel */}
         <div className="lm-orbit">
-          <span className="lm-orbit-item" style={{ "--a": "0deg" } as React.CSSProperties}>✨</span>
-          <span className="lm-orbit-item" style={{ "--a": "120deg" } as React.CSSProperties}>💖</span>
-          <span className="lm-orbit-item" style={{ "--a": "240deg" } as React.CSSProperties}>🩷</span>
+          <span className="lm-orbit-item" style={{ "--a": "0deg" } as React.CSSProperties}>{ic("sparkleA")}</span>
+          <span className="lm-orbit-item" style={{ "--a": "120deg" } as React.CSSProperties}>{ic("sparkleB")}</span>
+          <span className="lm-orbit-item" style={{ "--a": "240deg" } as React.CSSProperties}>{ic("sparkleC")}</span>
         </div>
       </div>
 

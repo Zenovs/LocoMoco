@@ -1,16 +1,18 @@
 "use client";
 
 import type { OverBudgetProject } from "@/lib/metrics/overBudget";
+import { useIcon } from "./ThemeContext";
 
 interface Props {
   projects: OverBudgetProject[];
 }
 
 export default function OverBudgetList({ projects }: Props) {
+  const ic = useIcon();
   return (
     <section className="card">
       <h2 style={{ fontSize: 18, color: "var(--plum)", marginBottom: 4 }}>
-        🚨 Über Budget
+        {ic("overBudget")} Über Budget
       </h2>
       <p style={{ fontSize: 12.5, color: "var(--plum-soft)", fontWeight: 600, marginBottom: 20 }}>
         mehr Stunden gebraucht als geplant

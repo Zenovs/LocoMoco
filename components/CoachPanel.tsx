@@ -2,6 +2,7 @@
 
 import type { Advice } from "@/lib/advice";
 import type { TimeWaster } from "@/lib/metrics/timeWasters";
+import { useIcon } from "./ThemeContext";
 
 interface Props {
   userName: string;
@@ -12,6 +13,7 @@ interface Props {
 }
 
 export default function CoachPanel({ userName, targetPct, actualPct, advice, timeWasters }: Props) {
+  const ic = useIcon();
   const maxH = Math.max(...timeWasters.map((t) => t.hours), 1);
 
   return (
@@ -20,7 +22,7 @@ export default function CoachPanel({ userName, targetPct, actualPct, advice, tim
       style={{ gridColumn: "1 / -1", border: "1.5px solid #ffd0e6", background: "linear-gradient(180deg, rgba(255,240,247,.9), rgba(255,255,255,.7))" }}
     >
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
-        <span style={{ fontSize: 22 }}>🧚‍♀️</span>
+        <span style={{ fontSize: 22 }}>{ic("coach")}</span>
         <h2 style={{ fontSize: 18, color: "var(--plum)" }}>Loco-Coach</h2>
         <span style={{ marginLeft: "auto", fontWeight: 800, fontSize: 13, color: "#c0145a", background: "#fff0f5", border: "1.5px solid #ffd0e6", padding: "5px 12px", borderRadius: 999, whiteSpace: "nowrap" }}>
           {actualPct}% · Ziel {targetPct}%

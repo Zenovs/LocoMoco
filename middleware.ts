@@ -8,6 +8,8 @@ const PUBLIC = [
   "/api/auth/logout",
   "/api/auth/setup",
   "/api/auth/needs-setup",
+  "/api/auth/me", // liefert ohne Session sauber {user:null}
+  "/api/theme", // Geräte-/Default-Theme (nicht sensibel)
 ];
 
 export async function middleware(req: NextRequest) {

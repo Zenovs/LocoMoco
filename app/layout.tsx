@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import ThemeProvider from "@/components/ThemeProvider";
+import { ThemeWatcher } from "@/components/ThemeContext";
 import { defaultTheme } from "@/lib/theme";
 
 export const metadata: Metadata = {
@@ -24,7 +25,7 @@ export default function RootLayout({
     <html lang="de" className="h-full" data-theme={theme}>
       <body className="min-h-full">
         <ThemeProvider />
-        {children}
+        <ThemeWatcher>{children}</ThemeWatcher>
       </body>
     </html>
   );

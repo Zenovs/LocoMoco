@@ -1,6 +1,7 @@
 "use client";
 
 import type { HoursCheckResult } from "@/lib/metrics/hoursCheck";
+import { useIcon } from "./ThemeContext";
 
 interface Props {
   check: HoursCheckResult;
@@ -24,10 +25,11 @@ function fmtFull(iso: string): string {
 }
 
 export default function HoursCheck({ check, userName }: Props) {
+  const ic = useIcon();
   if (!check.hasTarget) {
     return (
       <section className="card" style={{ gridColumn: "1 / -1" }}>
-        <h2 style={{ fontSize: 18, color: "var(--plum)", marginBottom: 4 }}>⏱️ Erfassungs-Check</h2>
+        <h2 style={{ fontSize: 18, color: "var(--plum)", marginBottom: 4 }}>{ic("hoursCheck")} Erfassungs-Check</h2>
         <p style={{ fontSize: 13, color: "var(--plum-soft)", fontWeight: 600 }}>
           Für {userName} ist kein Stellengrad in MOCO hinterlegt — ein Soll-Abgleich ist daher nicht möglich.
         </p>
@@ -38,7 +40,7 @@ export default function HoursCheck({ check, userName }: Props) {
   if (check.asOf === null) {
     return (
       <section className="card" style={{ gridColumn: "1 / -1" }}>
-        <h2 style={{ fontSize: 18, color: "var(--plum)", marginBottom: 4 }}>⏱️ Erfassungs-Check</h2>
+        <h2 style={{ fontSize: 18, color: "var(--plum)", marginBottom: 4 }}>{ic("hoursCheck")} Erfassungs-Check</h2>
         <p style={{ fontSize: 13, color: "var(--plum-soft)", fontWeight: 600 }}>
           Der Monat hat gerade erst begonnen — noch keine abgeschlossenen Tage zum Prüfen 🌱
         </p>
@@ -54,7 +56,7 @@ export default function HoursCheck({ check, userName }: Props) {
   return (
     <section className="card" style={{ gridColumn: "1 / -1", border: `1.5px solid ${border}` }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4, flexWrap: "wrap" }}>
-        <h2 style={{ fontSize: 18, color: "var(--plum)" }}>⏱️ Erfassungs-Check</h2>
+        <h2 style={{ fontSize: 18, color: "var(--plum)" }}>{ic("hoursCheck")} Erfassungs-Check</h2>
         <span
           style={{
             marginLeft: "auto",

@@ -1,6 +1,7 @@
 "use client";
 
 import type { SleepingProject } from "@/lib/metrics/sleeping";
+import { useIcon } from "./ThemeContext";
 
 interface Props {
   projects: SleepingProject[];
@@ -14,10 +15,11 @@ function daysLabel(days: number): string {
 }
 
 export default function SleepingList({ projects }: Props) {
+  const ic = useIcon();
   return (
     <section className="card">
       <h2 style={{ fontSize: 18, color: "var(--plum)", marginBottom: 4 }}>
-        😴 Seit 60 Tagen schlafend
+        {ic("sleeping")} Seit 60 Tagen schlafend
       </h2>
       <p style={{ fontSize: 12.5, color: "var(--plum-soft)", fontWeight: 600, marginBottom: 20 }}>
         keine Aktivität — Zeit zum Aufwecken oder Archivieren
@@ -84,7 +86,7 @@ export default function SleepingList({ projects }: Props) {
                   whiteSpace: "nowrap",
                 }}
               >
-                😴 {daysLabel(p.daysSinceActivity)}
+                {ic("sleeping")} {daysLabel(p.daysSinceActivity)}
               </div>
             </div>
           ))}

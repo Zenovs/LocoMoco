@@ -1,6 +1,7 @@
 "use client";
 
 import type { ProductivityResult } from "@/lib/metrics/productivity";
+import { useIcon } from "./ThemeContext";
 
 export interface MonthSlot {
   label: string; // z. B. "Mai 2026"
@@ -73,11 +74,12 @@ function MetricGroup({
 }
 
 export default function MonthCompare({ a, b }: { a: MonthSlot; b: MonthSlot }) {
+  const ic = useIcon();
   return (
     <div className="card" style={{ gridColumn: "1 / -1" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10, marginBottom: 18 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span style={{ fontSize: 20 }}>⚖️</span>
+          <span style={{ fontSize: 20 }}>{ic("compare")}</span>
           <h3 style={{ fontFamily: "var(--font-heading)", fontWeight: 700, color: "var(--plum)", fontSize: "1.15rem" }}>
             Monatsvergleich
           </h3>
