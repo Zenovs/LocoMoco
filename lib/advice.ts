@@ -15,8 +15,8 @@ export function buildAdvice(
   targetPct: number,
   timeWasters: TimeWaster[]
 ): Advice {
-  const denom = p.targetHours ?? p.totalHours ?? 0;
-  const neededBillable = (targetPct / 100) * denom;
+  // Produktivität = verrechenbar ÷ erfasst, daher Lücke gegen die erfassten Stunden.
+  const neededBillable = (targetPct / 100) * (p.totalHours || 0);
   const gapHours = Math.max(0, Math.round((neededBillable - p.billableHours) * 10) / 10);
   const belowTarget = p.productivityPct < targetPct;
   const internalPct = p.totalHours > 0 ? Math.round((p.internalHours / p.totalHours) * 100) : 0;

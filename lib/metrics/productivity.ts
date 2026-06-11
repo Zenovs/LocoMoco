@@ -27,9 +27,11 @@ export function calcProductivity(
   const totalHours = userActivities.reduce((s, a) => s + a.hours, 0);
   const internalHours = totalHours - billableHours;
 
+  // Soll-Stunden laut Anstellungsgrad (nur zur Anzeige – NICHT als Nenner).
   const targetHours = calcTargetHours(employments, userId, year, month);
 
-  const denominator = targetHours ?? (totalHours || 1);
+  // Produktivität = verrechenbare ÷ ERFASSTE Stunden.
+  const denominator = totalHours || 1;
   const productivityPct = Math.round((billableHours / denominator) * 100);
 
   return {
@@ -38,7 +40,7 @@ export function calcProductivity(
     targetHours: targetHours ? Math.round(targetHours * 10) / 10 : null,
     internalHours: Math.round(internalHours * 10) / 10,
     productivityPct,
-    label: targetHours ? "target" : "total",
+    label: "total",
   };
 }
 

@@ -34,7 +34,7 @@ export default function ProductivityRing({ productivity, delta, userName, month,
         💖 Monatliche Produktivität
       </h2>
       <p style={{ fontSize: 12.5, color: "var(--plum-soft)", fontWeight: 600, marginBottom: 20 }}>
-        verrechenbare Stunden ÷ Sollstunden · {month} {year}
+        verrechenbare ÷ erfasste Stunden · {month} {year}
       </p>
 
       <div style={{ display: "flex", alignItems: "center", gap: 30, flexWrap: "wrap" }}>
@@ -112,26 +112,25 @@ export default function ProductivityRing({ productivity, delta, userName, month,
             </div>
           )}
 
-          <div style={{ display: "flex", gap: 26, marginTop: 20, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: 22, marginTop: 20, flexWrap: "wrap" }}>
             <div>
               <span style={{ display: "block", fontFamily: "Fredoka, sans-serif", fontWeight: 700, fontSize: 24, color: "var(--hotpink)" }}>
                 {productivity.billableHours}h
               </span>
               <span style={{ fontSize: 12, color: "var(--plum-soft)", fontWeight: 600 }}>verrechenbar</span>
             </div>
-            {productivity.targetHours !== null ? (
+            <div>
+              <span style={{ display: "block", fontFamily: "Fredoka, sans-serif", fontWeight: 700, fontSize: 24, color: "var(--plum)" }}>
+                {productivity.totalHours}h
+              </span>
+              <span style={{ fontSize: 12, color: "var(--plum-soft)", fontWeight: 600 }}>erfasst</span>
+            </div>
+            {productivity.targetHours !== null && (
               <div>
-                <span style={{ display: "block", fontFamily: "Fredoka, sans-serif", fontWeight: 700, fontSize: 24, color: "var(--plum)" }}>
+                <span style={{ display: "block", fontFamily: "Fredoka, sans-serif", fontWeight: 700, fontSize: 24, color: "var(--periwinkle)" }}>
                   {productivity.targetHours}h
                 </span>
-                <span style={{ fontSize: 12, color: "var(--plum-soft)", fontWeight: 600 }}>Soll</span>
-              </div>
-            ) : (
-              <div>
-                <span style={{ display: "block", fontFamily: "Fredoka, sans-serif", fontWeight: 700, fontSize: 24, color: "var(--plum)" }}>
-                  {productivity.totalHours}h
-                </span>
-                <span style={{ fontSize: 12, color: "var(--plum-soft)", fontWeight: 600 }}>total erfasst*</span>
+                <span style={{ fontSize: 12, color: "var(--plum-soft)", fontWeight: 600 }}>Soll (Pensum)</span>
               </div>
             )}
             <div>
@@ -142,11 +141,6 @@ export default function ProductivityRing({ productivity, delta, userName, month,
             </div>
           </div>
 
-          {productivity.label === "total" && (
-            <p style={{ fontSize: 11, color: "var(--plum-soft)", marginTop: 8, opacity: 0.7 }}>
-              * Kein Stellengrad gefunden — Verhältnis zu Total.
-            </p>
-          )}
 
           {/* Mindestziel festlegen / bearbeiten */}
           <div style={{ marginTop: 16, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
