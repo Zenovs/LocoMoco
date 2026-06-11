@@ -1,7 +1,13 @@
 @import url("https://fonts.googleapis.com/css2?family=Pacifico&family=Fredoka:wght@400;500;600;700&family=Quicksand:wght@400;500;600;700&display=swap");
 @import "tailwindcss";
 
-:root {
+/* ============================================================
+   THEMES
+   Jedes Theme setzt denselben Satz Variablen. Aktiv über
+   <html data-theme="…">.  :root = Standard (girly).
+   ============================================================ */
+:root,
+[data-theme="girly"] {
   --bubblegum: #ff4fa3;
   --hotpink:   #ff2e95;
   --blush:     #ffd6ec;
@@ -12,32 +18,118 @@
   --plum:      #4a1d3f;
   --plum-soft: #7a4d6e;
   --mint:      #9af7d8;
+
   --holo: linear-gradient(110deg,#ff8fd0 0%,#c9a7ff 30%,#a9d8ff 55%,#ffd86b 78%,#ff8fd0 100%);
-  --card-glow: 0 18px 50px -12px rgba(255,79,163,.45);
-  --radius: 28px;
-  /* App ist bewusst nur hell — verhindert dunkle Formular-/Steuerelemente im
-     Dark Mode (u. a. im exportierten PDF). */
-  color-scheme: light;
-}
+  --accent-grad: linear-gradient(110deg,#ff8fd0 0%,#ff2e95 50%,#c9a7ff 100%);
+  --ring-stops: #ff8fd0,#c9a7ff,#a9d8ff,#ffd86b,#ff8fd0;
+  --glow: rgba(255,79,163,.45);
 
-* { box-sizing: border-box; }
-
-html { scroll-behavior: smooth; }
-
-body {
-  font-family: 'Quicksand', sans-serif;
-  color: var(--plum);
-  min-height: 100vh;
-  background:
+  --app-bg:
     radial-gradient(1200px 600px at 12% -8%, #ffe1f1 0%, transparent 55%),
     radial-gradient(900px 700px at 95% 5%, rgba(231,222,255,.95) 0%, transparent 50%),
     radial-gradient(800px 800px at 60% 110%, #ffe9f6 0%, transparent 55%),
     linear-gradient(160deg,#fff0f8 0%,#fde7ff 45%,#eef0ff 100%);
+
+  --card-bg: rgba(255,255,255,.66);
+  --card-border: rgba(255,255,255,.9);
+  --card-glow: 0 18px 50px -12px rgba(255,79,163,.45);
+  --bar-bg: #ffe3f1;
+  --chip-border: #ffc4e3;
+
+  --font-display: 'Pacifico', cursive;
+  --font-heading: 'Fredoka', sans-serif;
+  --font-body:    'Quicksand', sans-serif;
+
+  --sparkle-display: block;
+  --radius: 28px;
+  color-scheme: light;
+}
+
+/* ── PRO: clean & professionell (Standard für Server/Admin) ── */
+[data-theme="pro"] {
+  --bubblegum: #4f46e5;
+  --hotpink:   #4f46e5;
+  --blush:     #e0e7ff;
+  --cotton:    #f8fafc;
+  --lilac:     #6366f1;
+  --periwinkle:#0ea5e9;
+  --gold:      #14b8a6;
+  --plum:      #1e293b;
+  --plum-soft: #64748b;
+  --mint:      #10b981;
+
+  --holo: linear-gradient(110deg,#4f46e5,#0ea5e9,#6366f1,#14b8a6,#4f46e5);
+  --accent-grad: linear-gradient(110deg,#4f46e5,#6366f1,#0ea5e9);
+  --ring-stops: #4f46e5,#6366f1,#0ea5e9,#14b8a6,#4f46e5;
+  --glow: rgba(30,41,59,.18);
+
+  --app-bg:
+    radial-gradient(1200px 600px at 12% -8%, #eef2ff 0%, transparent 55%),
+    radial-gradient(900px 700px at 95% 5%, #e0f2fe 0%, transparent 50%),
+    linear-gradient(160deg,#f8fafc 0%,#f1f5f9 100%);
+
+  --card-bg: rgba(255,255,255,.85);
+  --card-border: #e2e8f0;
+  --card-glow: 0 12px 34px -14px rgba(15,23,42,.22);
+  --bar-bg: #e2e8f0;
+  --chip-border: #cbd5e1;
+
+  --font-display: -apple-system, 'Inter', 'Segoe UI', system-ui, sans-serif;
+  --font-heading: -apple-system, 'Inter', 'Segoe UI', system-ui, sans-serif;
+  --font-body:    -apple-system, 'Inter', 'Segoe UI', system-ui, sans-serif;
+
+  --sparkle-display: none;
+}
+
+/* ── OCEAN: ruhiges Blau/Türkis ── */
+[data-theme="ocean"] {
+  --bubblegum: #0891b2;
+  --hotpink:   #0891b2;
+  --blush:     #cffafe;
+  --cotton:    #f0fdfa;
+  --lilac:     #22d3ee;
+  --periwinkle:#38bdf8;
+  --gold:      #2dd4bf;
+  --plum:      #0f2942;
+  --plum-soft: #4b6b86;
+  --mint:      #5eead4;
+
+  --holo: linear-gradient(110deg,#0891b2,#06b6d4,#38bdf8,#2dd4bf,#0891b2);
+  --accent-grad: linear-gradient(110deg,#0891b2,#06b6d4,#38bdf8);
+  --ring-stops: #0891b2,#06b6d4,#38bdf8,#2dd4bf,#0891b2;
+  --glow: rgba(8,145,178,.35);
+
+  --app-bg:
+    radial-gradient(1200px 600px at 12% -8%, #cffafe 0%, transparent 55%),
+    radial-gradient(900px 700px at 95% 5%, #e0f2fe 0%, transparent 50%),
+    linear-gradient(160deg,#f0fdfa 0%,#ecfeff 100%);
+
+  --card-bg: rgba(255,255,255,.78);
+  --card-border: #b6e6ee;
+  --card-glow: 0 16px 44px -14px rgba(8,145,178,.3);
+  --bar-bg: #cffafe;
+  --chip-border: #a5e8f0;
+
+  --font-display: -apple-system, 'Inter', 'Segoe UI', system-ui, sans-serif;
+  --font-heading: -apple-system, 'Inter', 'Segoe UI', system-ui, sans-serif;
+  --font-body:    -apple-system, 'Inter', 'Segoe UI', system-ui, sans-serif;
+
+  --sparkle-display: none;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: var(--font-body);
+  color: var(--plum);
+  min-height: 100vh;
+  background: var(--app-bg);
   overflow-x: hidden;
 }
 
-/* ── sparkle field ─────────────────────────────────────── */
-#sparkles { position: fixed; inset: 0; pointer-events: none; z-index: 0; }
+/* ── sparkle field (nur Themes mit --sparkle-display:block) ── */
+#sparkles { position: fixed; inset: 0; pointer-events: none; z-index: 0; display: var(--sparkle-display, block); }
 .spark {
   position: absolute; opacity: 0;
   animation: floatUp linear infinite;
@@ -50,7 +142,6 @@ body {
   100% { transform: translateY(-120px) scale(1.1) rotate(180deg); opacity: 0; }
 }
 
-/* ── logo shimmer ──────────────────────────────────────── */
 @keyframes shimmer {
   0%,100% { background-position: 0% 50%; }
   50%     { background-position: 100% 50%; }
@@ -58,17 +149,16 @@ body {
 
 /* ── glass card ────────────────────────────────────────── */
 .card {
-  background: rgba(255,255,255,.66);
+  background: var(--card-bg);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1.5px solid rgba(255,255,255,.9);
+  border: 1.5px solid var(--card-border);
   border-radius: var(--radius);
   box-shadow: var(--card-glow);
   padding: 26px 28px;
   position: relative;
   overflow: hidden;
 }
-/* holographic border via ::before */
 .card::before {
   content: "";
   position: absolute;
@@ -85,17 +175,14 @@ body {
   pointer-events: none;
 }
 
-/* ── PDF-/Druck-Export ─────────────────────────────────────
-   WKWebViews PDF-Export kann backdrop-filter (Glaseffekt) nicht und rendert
-   die Karten sonst dunkelgrau. Beim Export daher solide, helle Karten ohne
-   Glaseffekt und ohne den holografischen ::before-Rand. */
+/* ── PDF-/Druck-Export: Glaseffekt aus, sonst dunkel im Export ── */
 body.exporting .card,
 body.exporting .chip {
   background: #ffffff !important;
   -webkit-backdrop-filter: none !important;
   backdrop-filter: none !important;
   box-shadow: none !important;
-  border-color: #f3d4e6 !important;
+  border-color: #e2e2e2 !important;
 }
 body.exporting .card::before { display: none !important; }
 @media print {
@@ -113,40 +200,38 @@ body.exporting .card::before { display: none !important; }
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  background: rgba(255,255,255,.7);
+  background: var(--card-bg);
   backdrop-filter: blur(10px);
-  border: 1.5px solid #ffc4e3;
+  border: 1.5px solid var(--chip-border);
   border-radius: 9999px;
   padding: 10px 18px;
-  font-family: 'Fredoka', sans-serif;
+  font-family: var(--font-heading);
   font-weight: 600;
   font-size: 0.9rem;
   color: var(--plum);
   cursor: pointer;
   transition: transform .15s ease, box-shadow .15s ease;
-  box-shadow: 0 6px 16px -8px rgba(255,79,163,.5);
+  box-shadow: 0 6px 16px -8px var(--glow);
 }
-.chip:hover { transform: translateY(-2px); box-shadow: 0 10px 22px -8px rgba(255,79,163,.65); }
+.chip:hover { transform: translateY(-2px); box-shadow: 0 10px 22px -8px var(--glow); }
 .chip.active { background: var(--hotpink); color: #fff; border-color: var(--hotpink); }
 .chip .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--gold); box-shadow: 0 0 8px var(--gold); flex-shrink: 0; }
+.chip:disabled { opacity: .6; cursor: default; }
 
 /* ── progress bar ──────────────────────────────────────── */
-.bar { height: 11px; border-radius: 999px; background: #ffe3f1; overflow: hidden; }
-.bar > i { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--hotpink), var(--lilac)); box-shadow: 0 0 10px rgba(255,79,163,.5); }
+.bar { height: 11px; border-radius: 999px; background: var(--bar-bg); overflow: hidden; }
+.bar > i { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--hotpink), var(--lilac)); box-shadow: 0 0 10px var(--glow); }
 
-/* ── focus ─────────────────────────────────────────────── */
+/* ── focus / scrollbar ─────────────────────────────────── */
 :focus-visible { outline: 2.5px solid var(--hotpink); outline-offset: 3px; border-radius: 4px; }
-
-/* ── scrollbar ─────────────────────────────────────────── */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: var(--blush); border-radius: 3px; }
 ::-webkit-scrollbar-thumb { background: var(--hotpink); border-radius: 3px; }
 
-/* ── reduced motion ────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
   .spark { display: none; }
   .card::before { animation: none; }
 }
 
-h1 { font-family: 'Pacifico', cursive; }
-h2, h3 { font-family: 'Fredoka', sans-serif; }
+h1 { font-family: var(--font-display); }
+h2, h3 { font-family: var(--font-heading); }

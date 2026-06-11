@@ -24,7 +24,7 @@ export default function SleepingList({ projects }: Props) {
       </p>
 
       {projects.length === 0 ? (
-        <p style={{ textAlign: "center", color: "var(--plum-soft)", fontFamily: "Fredoka, sans-serif", fontSize: "1.05rem", padding: "20px 0" }}>
+        <p style={{ textAlign: "center", color: "var(--plum-soft)", fontFamily: "var(--font-heading)", fontSize: "1.05rem", padding: "20px 0" }}>
           Alle aktiven Projekte sind lebendig 🌱
         </p>
       ) : (
@@ -57,7 +57,7 @@ export default function SleepingList({ projects }: Props) {
               </div>
 
               <div style={{ flex: 1, minWidth: 0 }}>
-                <b style={{ fontFamily: "Fredoka, sans-serif", fontSize: 14, display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                <b style={{ fontFamily: "var(--font-heading)", fontSize: 14, display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {p.projectName}
                 </b>
                 {p.customerName && (
@@ -74,7 +74,7 @@ export default function SleepingList({ projects }: Props) {
 
               <div
                 style={{
-                  fontFamily: "Fredoka, sans-serif",
+                  fontFamily: "var(--font-heading)",
                   fontWeight: 700,
                   fontSize: 13,
                   color: p.daysSinceActivity > 180 ? "#c0145a" : "#6b2d6b",

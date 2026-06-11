@@ -8,15 +8,15 @@ interface Props {
 
 const labelStyle: React.CSSProperties = {
   color: "var(--plum-soft)",
-  fontFamily: "Fredoka, sans-serif",
+  fontFamily: "var(--font-heading)",
 };
 
 const inputStyle: React.CSSProperties = {
   borderRadius: "16px",
-  border: "1.5px solid #ffc4e3",
+  border: "1.5px solid var(--chip-border)",
   background: "rgba(255,255,255,.7)",
   color: "var(--plum)",
-  fontFamily: "Quicksand, sans-serif",
+  fontFamily: "var(--font-body)",
 };
 
 export default function SetupScreen({ onSuccess }: Props) {
@@ -26,6 +26,35 @@ export default function SetupScreen({ onSuccess }: Props) {
   const [reconfigure, setReconfigure] = useState(false);
   const [status, setStatus] = useState<"idle" | "loading" | "error" | "ok">("idle");
   const [error, setError] = useState("");
+
+  // Theme
+  const [theme, setTheme] = useState("girly");
+  const [themes, setThemes] = useState<string[]>(["girly", "pro", "ocean"]);
+  useEffect(() => {
+    fetch("/api/theme")
+      .then((r) => r.json())
+      .then((d: { theme?: string; available?: string[] }) => {
+        if (d.theme) setTheme(d.theme);
+        if (d.available) setThemes(d.available);
+      })
+      .catch(() => {});
+  }, []);
+
+  function changeTheme(next: string) {
+    setTheme(next);
+    document.documentElement.dataset.theme = next; // Live-Vorschau
+    fetch("/api/theme", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ theme: next }),
+    }).catch(() => {});
+  }
+
+  const THEME_LABELS: Record<string, string> = {
+    girly: "Girly ✨ (verspielt, rosa)",
+    pro: "Pro (clean, professionell)",
+    ocean: "Ocean (ruhiges Blau/Türkis)",
+  };
 
   // Bestehende Einstellungen vorbefüllen (wenn als Einstellungen geöffnet)
   useEffect(() => {
@@ -75,8 +104,8 @@ export default function SetupScreen({ onSuccess }: Props) {
           <h1
             className="text-5xl mb-2"
             style={{
-              fontFamily: "Pacifico, cursive",
-              background: "linear-gradient(110deg,#ff8fd0 0%,#c9a7ff 30%,#a9d8ff 55%,#ffd86b 78%,#ff8fd0 100%)",
+              fontFamily: "var(--font-display)",
+              background: "var(--holo)",
               backgroundSize: "220% 220%",
               WebkitBackgroundClip: "text",
               backgroundClip: "text",
@@ -156,6 +185,27 @@ export default function SetupScreen({ onSuccess }: Props) {
             />
           </div>
 
+          {/* Theme */}
+          <div>
+            <label htmlFor="theme" className="block text-sm font-semibold mb-1.5" style={labelStyle}>
+              Theme
+            </label>
+            <select
+              id="theme"
+              value={theme}
+              onChange={(e) => changeTheme(e.target.value)}
+              className="w-full px-4 py-3 font-semibold outline-none"
+              style={{ ...inputStyle, appearance: "none", cursor: "pointer" }}
+            >
+              {themes.map((t) => (
+                <option key={t} value={t}>{THEME_LABELS[t] ?? t}</option>
+              ))}
+            </select>
+            <p className="text-xs mt-1" style={{ color: "var(--plum-soft)" }}>
+              Ändert sich sofort. (Zentral pro Person zuweisbar, sobald der Server-Modus steht.)
+            </p>
+          </div>
+
           {error && (
             <div
               className="rounded-2xl px-4 py-3 text-sm font-semibold"
@@ -180,9 +230,9 @@ export default function SetupScreen({ onSuccess }: Props) {
             className="w-full py-3.5 font-bold text-white transition-all disabled:opacity-60"
             style={{
               borderRadius: "16px",
-              fontFamily: "Fredoka, sans-serif",
+              fontFamily: "var(--font-heading)",
               fontSize: "1.1rem",
-              background: "linear-gradient(110deg,#ff8fd0 0%,#ff2e95 50%,#c9a7ff 100%)",
+              background: "var(--accent-grad)",
               boxShadow: "0 8px 28px -6px rgba(255,46,149,.55)",
             }}
           >

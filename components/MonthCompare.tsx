@@ -7,8 +7,8 @@ export interface MonthSlot {
   productivity: ProductivityResult;
 }
 
-const COLOR_A = "#ff4fa3"; // Hotpink   – Monat A
-const COLOR_B = "#c9a7ff"; // Lavendel  – Monat B
+const COLOR_A = "var(--hotpink)"; // Akzent – Monat A
+const COLOR_B = "var(--lilac)";   // Akzent-2 – Monat B
 
 function DeltaChip({ diff, unit }: { diff: number; unit: string }) {
   const rounded = Math.round(diff * 10) / 10;
@@ -52,18 +52,18 @@ function MetricGroup({
           <span style={{ width: 70, fontSize: 11, fontWeight: 700, color: "var(--plum-soft)", textAlign: "right", flexShrink: 0 }}>
             {row.l}
           </span>
-          <div style={{ flex: 1, height: 22, borderRadius: 999, background: "rgba(255,143,208,.12)", position: "relative", overflow: "hidden" }}>
+          <div style={{ flex: 1, height: 22, borderRadius: 999, background: "var(--bar-bg)", position: "relative", overflow: "hidden" }}>
             <div
               style={{
                 width: `${pct(row.v)}%`,
                 height: "100%",
                 borderRadius: 999,
-                background: `linear-gradient(90deg, ${row.c}cc, ${row.c})`,
+                background: row.c,
                 transition: "width .5s cubic-bezier(.22,1,.36,1)",
               }}
             />
           </div>
-          <span style={{ width: 58, fontFamily: "Fredoka, sans-serif", fontWeight: 800, fontSize: 14, color: "var(--plum)", flexShrink: 0 }}>
+          <span style={{ width: 58, fontFamily: "var(--font-heading)", fontWeight: 800, fontSize: 14, color: "var(--plum)", flexShrink: 0 }}>
             {row.v}{unit}
           </span>
         </div>
@@ -78,7 +78,7 @@ export default function MonthCompare({ a, b }: { a: MonthSlot; b: MonthSlot }) {
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10, marginBottom: 18 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <span style={{ fontSize: 20 }}>⚖️</span>
-          <h3 style={{ fontFamily: "Fredoka, sans-serif", fontWeight: 700, color: "var(--plum)", fontSize: "1.15rem" }}>
+          <h3 style={{ fontFamily: "var(--font-heading)", fontWeight: 700, color: "var(--plum)", fontSize: "1.15rem" }}>
             Monatsvergleich
           </h3>
         </div>

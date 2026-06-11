@@ -19,7 +19,7 @@ export default function Home() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <p
-          style={{ fontFamily: "Quicksand, sans-serif", color: "var(--pink)" }}
+          style={{ fontFamily: "var(--font-body)", color: "var(--pink)" }}
           className="text-lg animate-pulse"
         >
           Loco Moco lädt… ✨

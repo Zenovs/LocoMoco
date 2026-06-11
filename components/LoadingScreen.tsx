@@ -62,14 +62,14 @@ export default function LoadingScreen() {
       <style>{`
         .lm-ring {
           position: absolute; inset: 0; border-radius: 50%;
-          background: conic-gradient(from 0deg, #ff8fd0, #c9a7ff, #a9d8ff, #ffd86b, #ff8fd0);
+          background: conic-gradient(from 0deg, var(--ring-stops));
           filter: blur(8px); opacity: .6;
           animation: lm-spin 3.2s linear infinite, lm-breathe 2.4s ease-in-out infinite;
         }
         .lm-egg {
           position: absolute; inset: 0; display: grid; place-items: center;
           font-size: 74px; animation: lm-bounce 1.5s cubic-bezier(.5,0,.5,1) infinite;
-          filter: drop-shadow(0 8px 14px rgba(255,79,163,.4));
+          filter: drop-shadow(0 8px 14px var(--glow));
         }
         .lm-orbit { position: absolute; inset: 0; animation: lm-spin 6s linear infinite; }
         .lm-orbit-item {
@@ -78,23 +78,23 @@ export default function LoadingScreen() {
           animation: lm-twinkle 1.8s ease-in-out infinite;
         }
         .lm-title {
-          font-family: Fredoka, sans-serif; font-weight: 700; font-size: 1.35rem;
-          background: linear-gradient(110deg,#ff8fd0,#c9a7ff,#a9d8ff,#ffd86b,#ff8fd0);
+          font-family: var(--font-heading); font-weight: 700; font-size: 1.35rem;
+          background: var(--holo);
           background-size: 220% 220%; -webkit-background-clip: text; background-clip: text;
           color: transparent; animation: lm-shimmer 4s ease-in-out infinite; margin-bottom: 16px;
         }
         .lm-track {
           width: 230px; max-width: 70vw; height: 10px; border-radius: 999px;
-          background: rgba(255,143,208,.18); overflow: hidden; margin-bottom: 22px;
+          background: var(--bar-bg); overflow: hidden; margin-bottom: 22px;
         }
         .lm-fill {
           height: 100%; width: 42%; border-radius: 999px;
-          background: linear-gradient(90deg,#ff8fd0,#ff2e95,#c9a7ff);
-          box-shadow: 0 0 12px rgba(255,79,163,.6);
+          background: var(--accent-grad);
+          box-shadow: 0 0 12px var(--glow);
           animation: lm-slide 1.5s ease-in-out infinite;
         }
         .lm-wisdom {
-          max-width: 440px; text-align: center; font-family: Quicksand, sans-serif;
+          max-width: 440px; text-align: center; font-family: var(--font-body);
           font-weight: 600; font-size: 1.02rem; color: var(--plum-soft); min-height: 48px;
           animation: lm-fadein .6s ease both;
         }

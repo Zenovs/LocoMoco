@@ -33,7 +33,7 @@ export default function CoachPanel({ userName, targetPct, actualPct, advice, tim
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }} className="responsive-grid">
         {/* Zeitfresser */}
         <div>
-          <h3 style={{ fontFamily: "Fredoka, sans-serif", fontWeight: 700, fontSize: 14, color: "var(--plum)", marginBottom: 12 }}>
+          <h3 style={{ fontFamily: "var(--font-heading)", fontWeight: 700, fontSize: 14, color: "var(--plum)", marginBottom: 12 }}>
             🍩 Größte Zeitfresser (intern)
           </h3>
           {timeWasters.length === 0 ? (
@@ -48,7 +48,7 @@ export default function CoachPanel({ userName, targetPct, actualPct, advice, tim
                     <span style={{ fontSize: 13, fontWeight: 700, color: "var(--plum)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       {t.label}
                     </span>
-                    <span style={{ fontFamily: "Fredoka, sans-serif", fontWeight: 700, fontSize: 13, color: "var(--hotpink)", whiteSpace: "nowrap" }}>
+                    <span style={{ fontFamily: "var(--font-heading)", fontWeight: 700, fontSize: 13, color: "var(--hotpink)", whiteSpace: "nowrap" }}>
                       {t.hours} h
                     </span>
                   </div>
@@ -63,7 +63,7 @@ export default function CoachPanel({ userName, targetPct, actualPct, advice, tim
 
         {/* Lösungsvorschläge */}
         <div>
-          <h3 style={{ fontFamily: "Fredoka, sans-serif", fontWeight: 700, fontSize: 14, color: "var(--plum)", marginBottom: 12 }}>
+          <h3 style={{ fontFamily: "var(--font-heading)", fontWeight: 700, fontSize: 14, color: "var(--plum)", marginBottom: 12 }}>
             💡 Mögliche Lösungen
           </h3>
           <ul style={{ display: "flex", flexDirection: "column", gap: 11, listStyle: "none", padding: 0, margin: 0 }}>

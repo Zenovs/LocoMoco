@@ -20,7 +20,7 @@ export default function NonBillableChart({ projects, userName }: Props) {
       </p>
 
       {projects.length === 0 ? (
-        <p style={{ textAlign: "center", color: "var(--plum-soft)", fontFamily: "Fredoka, sans-serif", fontSize: "1.05rem", padding: "20px 0" }}>
+        <p style={{ textAlign: "center", color: "var(--plum-soft)", fontFamily: "var(--font-heading)", fontSize: "1.05rem", padding: "20px 0" }}>
           Alles verrechenbar — {userName} rockt! 🌟
         </p>
       ) : (
@@ -35,7 +35,7 @@ export default function NonBillableChart({ projects, userName }: Props) {
                     {p.projectName}
                   </span>
                   <span style={{ whiteSpace: "nowrap", marginLeft: 8, textAlign: "right" }}>
-                    <span style={{ fontFamily: "Fredoka, sans-serif", fontWeight: 700, fontSize: 15, color: "var(--hotpink)" }}>
+                    <span style={{ fontFamily: "var(--font-heading)", fontWeight: 700, fontSize: 15, color: "var(--hotpink)" }}>
                       {p.nonBillableHours} h
                     </span>
                     <span style={{ fontSize: 11, fontWeight: 600, color: "var(--plum-soft)", marginLeft: 6 }}>

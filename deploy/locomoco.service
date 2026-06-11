@@ -13,6 +13,8 @@ Group=locomoco
 WorkingDirectory=/opt/locomoco/app
 Environment=NODE_ENV=production
 Environment=HOME=/home/locomoco
+# Standard-Theme des Servers (nicht girly). Pro Person später zentral zuweisbar.
+Environment=LOCO_THEME=pro
 # An alle LAN-Interfaces binden, Port 4577
 ExecStart=/usr/bin/corepack pnpm exec next start -H 0.0.0.0 -p 4577
 Restart=always

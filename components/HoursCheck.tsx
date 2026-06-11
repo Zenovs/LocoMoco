@@ -77,19 +77,19 @@ export default function HoursCheck({ check, userName }: Props) {
 
       <div style={{ display: "flex", gap: 30, flexWrap: "wrap", marginBottom: check.missingDays.length ? 18 : 0 }}>
         <div>
-          <span style={{ display: "block", fontFamily: "Fredoka, sans-serif", fontWeight: 700, fontSize: 26, color: "var(--plum)" }}>
+          <span style={{ display: "block", fontFamily: "var(--font-heading)", fontWeight: 700, fontSize: 26, color: "var(--plum)" }}>
             {check.expectedToDate} h
           </span>
           <span style={{ fontSize: 12, color: "var(--plum-soft)", fontWeight: 600 }}>Soll bis heute</span>
         </div>
         <div>
-          <span style={{ display: "block", fontFamily: "Fredoka, sans-serif", fontWeight: 700, fontSize: 26, color: behind ? "#c0145a" : "var(--hotpink)" }}>
+          <span style={{ display: "block", fontFamily: "var(--font-heading)", fontWeight: 700, fontSize: 26, color: behind ? "#c0145a" : "var(--hotpink)" }}>
             {check.recorded} h
           </span>
           <span style={{ fontSize: 12, color: "var(--plum-soft)", fontWeight: 600 }}>erfasst</span>
         </div>
         <div>
-          <span style={{ display: "block", fontFamily: "Fredoka, sans-serif", fontWeight: 700, fontSize: 26, color: accent }}>
+          <span style={{ display: "block", fontFamily: "var(--font-heading)", fontWeight: 700, fontSize: 26, color: accent }}>
             {check.delta > 0 ? "+" : ""}{check.delta} h
           </span>
           <span style={{ fontSize: 12, color: "var(--plum-soft)", fontWeight: 600 }}>Differenz</span>

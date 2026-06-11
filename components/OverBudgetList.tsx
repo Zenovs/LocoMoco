@@ -17,7 +17,7 @@ export default function OverBudgetList({ projects }: Props) {
       </p>
 
       {projects.length === 0 ? (
-        <p style={{ textAlign: "center", color: "var(--plum-soft)", fontFamily: "Fredoka, sans-serif", fontSize: "1.05rem", padding: "20px 0" }}>
+        <p style={{ textAlign: "center", color: "var(--plum-soft)", fontFamily: "var(--font-heading)", fontSize: "1.05rem", padding: "20px 0" }}>
           Alle Projekte im grünen Bereich 💚
         </p>
       ) : (
@@ -37,14 +37,14 @@ export default function OverBudgetList({ projects }: Props) {
               }}
             >
               <div>
-                <b style={{ fontFamily: "Fredoka, sans-serif", fontSize: 14 }}>{p.projectName}</b>
+                <b style={{ fontFamily: "var(--font-heading)", fontSize: 14 }}>{p.projectName}</b>
                 <span style={{ display: "block", fontSize: 12, color: "var(--plum-soft)", fontWeight: 600, marginTop: 2 }}>
                   geplant {p.hoursPlanned}h · gebucht {p.hoursTotal}h · {p.progressPct}%
                 </span>
               </div>
               <div
                 style={{
-                  fontFamily: "Fredoka, sans-serif",
+                  fontFamily: "var(--font-heading)",
                   fontWeight: 700,
                   fontSize: 15,
                   color: "#e63970",

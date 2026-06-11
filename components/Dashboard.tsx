@@ -229,10 +229,10 @@ export default function Dashboard({ onSettingsChange }: Props) {
           <div>
             <h1
               style={{
-                fontFamily: "Pacifico, cursive",
+                fontFamily: "var(--font-display)",
                 fontSize: "clamp(40px,7vw,64px)",
                 lineHeight: .95,
-                background: "linear-gradient(110deg,#ff8fd0 0%,#c9a7ff 30%,#a9d8ff 55%,#ffd86b 78%,#ff8fd0 100%)",
+                background: "var(--holo)",
                 backgroundSize: "220% 220%",
                 WebkitBackgroundClip: "text",
                 backgroundClip: "text",
@@ -390,7 +390,7 @@ export default function Dashboard({ onSettingsChange }: Props) {
         )}
 
         {!loading && data && data.productivity.totalHours === 0 && (
-          <p style={{ textAlign: "center", color: "var(--plum-soft)", fontFamily: "Fredoka, sans-serif", fontSize: "1.2rem", marginTop: 32 }}>
+          <p style={{ textAlign: "center", color: "var(--plum-soft)", fontFamily: "var(--font-heading)", fontSize: "1.2rem", marginTop: 32 }}>
             Noch nichts gebucht diesen Monat 🌸
           </p>
         )}
@@ -418,7 +418,7 @@ export default function Dashboard({ onSettingsChange }: Props) {
           border: 1.5px solid #ffc4e3;
           background: rgba(255,255,255,.75);
           color: var(--plum);
-          font-family: Quicksand, sans-serif;
+          font-family: var(--font-body);
           font-weight: 700;
           padding: 11px 16px;
           outline: none;
@@ -433,7 +433,7 @@ export default function Dashboard({ onSettingsChange }: Props) {
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-      <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: ".04em", textTransform: "uppercase", color: "var(--plum-soft)", fontFamily: "Fredoka, sans-serif" }}>
+      <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: ".04em", textTransform: "uppercase", color: "var(--plum-soft)", fontFamily: "var(--font-heading)" }}>
         {label}
       </span>
       {children}

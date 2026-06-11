@@ -45,11 +45,11 @@ export default function ProductivityRing({ productivity, delta, userName, month,
             width: 168,
             height: 168,
             borderRadius: "50%",
-            background: `conic-gradient(from 220deg, #ff2e95 0%, #c9a7ff ${pct * 1.4 * 0.72}%, #ffe3f1 ${pct * 1.4 * 0.72}%, #ffe3f1 100%)`,
+            background: `conic-gradient(from 220deg, var(--hotpink) 0%, var(--lilac) ${pct * 1.4 * 0.72}%, var(--bar-bg) ${pct * 1.4 * 0.72}%, var(--bar-bg) 100%)`,
             display: "grid",
             placeItems: "center",
             position: "relative",
-            boxShadow: "0 0 0 10px rgba(255,255,255,.55), 0 14px 30px -10px rgba(201,167,255,.7)",
+            boxShadow: "0 0 0 10px rgba(255,255,255,.55), 0 14px 30px -10px var(--glow)",
           }}
         >
           {/* inner white circle */}
@@ -59,10 +59,10 @@ export default function ProductivityRing({ productivity, delta, userName, month,
             style={{
               position: "relative",
               zIndex: 1,
-              fontFamily: "Fredoka, sans-serif",
+              fontFamily: "var(--font-heading)",
               fontWeight: 700,
               fontSize: 46,
-              background: "linear-gradient(110deg,#ff8fd0 0%,#c9a7ff 30%,#a9d8ff 55%,#ffd86b 78%,#ff8fd0 100%)",
+              background: "var(--holo)",
               backgroundSize: "200% 200%",
               WebkitBackgroundClip: "text",
               backgroundClip: "text",
@@ -77,7 +77,7 @@ export default function ProductivityRing({ productivity, delta, userName, month,
 
         {/* Meta */}
         <div style={{ flex: 1, minWidth: 160 }}>
-          <p style={{ fontFamily: "Fredoka, sans-serif", fontSize: 15, fontWeight: 600, color: "var(--plum-soft)" }}>
+          <p style={{ fontFamily: "var(--font-heading)", fontSize: 15, fontWeight: 600, color: "var(--plum-soft)" }}>
             {belowTarget
               ? `${userName} liegt unter dem Mindestziel 💪`
               : target !== null
@@ -86,7 +86,7 @@ export default function ProductivityRing({ productivity, delta, userName, month,
           </p>
 
           {belowTarget && (
-            <div style={{ display: "inline-flex", alignItems: "center", gap: 6, marginTop: 10, marginRight: 8, background: "#fff0f3", color: "#c0145a", fontWeight: 800, fontFamily: "Fredoka, sans-serif", padding: "6px 13px", borderRadius: 999, fontSize: 13, border: "1.5px solid #ffd0d8" }}>
+            <div style={{ display: "inline-flex", alignItems: "center", gap: 6, marginTop: 10, marginRight: 8, background: "#fff0f3", color: "#c0145a", fontWeight: 800, fontFamily: "var(--font-heading)", padding: "6px 13px", borderRadius: 999, fontSize: 13, border: "1.5px solid #ffd0d8" }}>
               ⚠️ {target! - productivity.productivityPct}% unter Ziel ({target}%)
             </div>
           )}
@@ -101,7 +101,7 @@ export default function ProductivityRing({ productivity, delta, userName, month,
                 background: deltaPositive ? "#e8fff4" : "#fff0f3",
                 color: deltaPositive ? "#15936b" : "#c0145a",
                 fontWeight: 700,
-                fontFamily: "Fredoka, sans-serif",
+                fontFamily: "var(--font-heading)",
                 padding: "6px 13px",
                 borderRadius: 999,
                 fontSize: 13,
@@ -114,27 +114,27 @@ export default function ProductivityRing({ productivity, delta, userName, month,
 
           <div style={{ display: "flex", gap: 22, marginTop: 20, flexWrap: "wrap" }}>
             <div>
-              <span style={{ display: "block", fontFamily: "Fredoka, sans-serif", fontWeight: 700, fontSize: 24, color: "var(--hotpink)" }}>
+              <span style={{ display: "block", fontFamily: "var(--font-heading)", fontWeight: 700, fontSize: 24, color: "var(--hotpink)" }}>
                 {productivity.billableHours}h
               </span>
               <span style={{ fontSize: 12, color: "var(--plum-soft)", fontWeight: 600 }}>verrechenbar</span>
             </div>
             <div>
-              <span style={{ display: "block", fontFamily: "Fredoka, sans-serif", fontWeight: 700, fontSize: 24, color: "var(--plum)" }}>
+              <span style={{ display: "block", fontFamily: "var(--font-heading)", fontWeight: 700, fontSize: 24, color: "var(--plum)" }}>
                 {productivity.totalHours}h
               </span>
               <span style={{ fontSize: 12, color: "var(--plum-soft)", fontWeight: 600 }}>erfasst</span>
             </div>
             {productivity.targetHours !== null && (
               <div>
-                <span style={{ display: "block", fontFamily: "Fredoka, sans-serif", fontWeight: 700, fontSize: 24, color: "var(--periwinkle)" }}>
+                <span style={{ display: "block", fontFamily: "var(--font-heading)", fontWeight: 700, fontSize: 24, color: "var(--periwinkle)" }}>
                   {productivity.targetHours}h
                 </span>
                 <span style={{ fontSize: 12, color: "var(--plum-soft)", fontWeight: 600 }}>Soll (Pensum)</span>
               </div>
             )}
             <div>
-              <span style={{ display: "block", fontFamily: "Fredoka, sans-serif", fontWeight: 700, fontSize: 24, color: "var(--lilac)" }}>
+              <span style={{ display: "block", fontFamily: "var(--font-heading)", fontWeight: 700, fontSize: 24, color: "var(--lilac)" }}>
                 {productivity.internalHours}h
               </span>
               <span style={{ fontSize: 12, color: "var(--plum-soft)", fontWeight: 600 }}>intern</span>
@@ -155,7 +155,7 @@ export default function ProductivityRing({ productivity, delta, userName, month,
                   autoFocus
                   onChange={(e) => setDraft(e.target.value)}
                   onKeyDown={(e) => { if (e.key === "Enter") save(); if (e.key === "Escape") setEditing(false); }}
-                  style={{ width: 64, padding: "5px 8px", borderRadius: 10, border: "1.5px solid #ffc4e3", fontWeight: 700, fontFamily: "Quicksand, sans-serif", color: "var(--plum)", outline: "none" }}
+                  style={{ width: 64, padding: "5px 8px", borderRadius: 10, border: "1.5px solid #ffc4e3", fontWeight: 700, fontFamily: "var(--font-body)", color: "var(--plum)", outline: "none" }}
                 />
                 <span style={{ fontWeight: 700, color: "var(--plum-soft)" }}>%</span>
                 <button onClick={save} className="chip" style={{ padding: "5px 11px" }}>✓ Speichern</button>
