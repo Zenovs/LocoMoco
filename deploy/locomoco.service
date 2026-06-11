@@ -1,0 +1,25 @@
+# systemd-Dienst: hält Loco Moco dauerhaft am Laufen (Neustart bei Crash/Reboot).
+# Installieren:  sudo cp deploy/locomoco.service /etc/systemd/system/
+#                sudo systemctl daemon-reload && sudo systemctl enable --now locomoco
+[Unit]
+Description=Loco Moco (zentraler Server)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=locomoco
+Group=locomoco
+WorkingDirectory=/opt/locomoco/app
+Environment=NODE_ENV=production
+Environment=HOME=/home/locomoco
+# An alle LAN-Interfaces binden, Port 4577
+ExecStart=/usr/bin/corepack pnpm exec next start -H 0.0.0.0 -p 4577
+Restart=always
+RestartSec=3
+# leichte Härtung
+NoNewPrivileges=true
+ProtectSystem=full
+
+[Install]
+WantedBy=multi-user.target

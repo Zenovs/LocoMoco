@@ -1,0 +1,14 @@
+# Optional, aber empfohlen SPÄTESTENS bevor Lohn-/Liquiditätsdaten dazukommen:
+# Caddy als Reverse-Proxy gibt eine schöne URL + HTTPS (intern, eigene CA).
+#
+# Installieren:  sudo apt install caddy
+#                sudo cp deploy/Caddyfile /etc/caddy/Caddyfile
+#                sudo systemctl restart caddy
+#
+# "tls internal" = selbst-signiertes Zertifikat von Caddys interner CA.
+# Auf den Client-Macs einmalig Caddys Root-CA vertrauen (siehe SERVER_SETUP.md).
+
+locomoco.intern {
+	tls internal
+	reverse_proxy 127.0.0.1:4577
+}
