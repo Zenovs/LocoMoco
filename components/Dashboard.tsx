@@ -6,12 +6,15 @@ import type { ProductivityResult } from "@/lib/metrics/productivity";
 import type { NonBillableProject } from "@/lib/metrics/nonBillable";
 import type { OverBudgetProject } from "@/lib/metrics/overBudget";
 import type { SleepingProject } from "@/lib/metrics/sleeping";
+import type { TimeWaster } from "@/lib/metrics/timeWasters";
+import { buildAdvice } from "@/lib/advice";
 import ProductivityRing from "./ProductivityRing";
 import NonBillableChart from "./NonBillableChart";
 import OverBudgetList from "./OverBudgetList";
 import SleepingList from "./SleepingList";
 import MonthCompare, { type MonthSlot } from "./MonthCompare";
 import LoadingScreen from "./LoadingScreen";
+import CoachPanel from "./CoachPanel";
 
 interface DashboardData {
   users: MocoUser[];
@@ -19,6 +22,7 @@ interface DashboardData {
   productivityDelta: number;
   nonBillable: NonBillableProject[];
   overBudget: OverBudgetProject[];
+  timeWasters: TimeWaster[];
 }
 
 interface Props {
@@ -53,6 +57,9 @@ export default function Dashboard({ onSettingsChange }: Props) {
   // Schläferprojekte: lazy nachgeladen
   const [sleeping, setSleeping] = useState<SleepingProject[] | null>(null);
 
+  // Mindestziele pro Mitarbeiter (userId -> %)
+  const [targets, setTargets] = useState<Record<string, number>>({});
+
   // Monatsvergleich
   const prevDefault = month === 1 ? { y: year - 1, m: 12 } : { y: year, m: month - 1 };
   const [compare, setCompare] = useState(false);
@@ -60,6 +67,25 @@ export default function Dashboard({ onSettingsChange }: Props) {
   const [cmpMonth, setCmpMonth] = useState(prevDefault.m);
   const [cmpData, setCmpData] = useState<{ a: MonthSlot; b: MonthSlot } | null>(null);
   const [cmpLoading, setCmpLoading] = useState(false);
+
+  // Mindestziele laden
+  useEffect(() => {
+    fetch("/api/targets")
+      .then((r) => r.json())
+      .then((d: { targets?: Record<string, number> }) => setTargets(d.targets ?? {}))
+      .catch(() => {});
+  }, []);
+
+  const setTargetFor = useCallback((userId: number, value: number | null) => {
+    fetch("/api/targets", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId, target: value }),
+    })
+      .then((r) => r.json())
+      .then((d: { targets?: Record<string, number> }) => { if (d.targets) setTargets(d.targets); })
+      .catch(() => {});
+  }, []);
 
   // Mitarbeiter + Standardauswahl (eigene Person via Setup-Benutzername)
   useEffect(() => {
@@ -182,6 +208,11 @@ export default function Dashboard({ onSettingsChange }: Props) {
     (window as unknown as LocoWindow).__locoExport?.(action);
 
   const selectedUser = users.find((u) => u.id === selectedUserId);
+  const selectedTarget = selectedUserId != null ? targets[String(selectedUserId)] ?? null : null;
+  const advice =
+    data && selectedTarget !== null
+      ? buildAdvice(data.productivity, selectedTarget, data.timeWasters)
+      : null;
 
   const yearOptions: number[] = [];
   for (let y = now.getFullYear(); y >= now.getFullYear() - 3; y--) yearOptions.push(y);
@@ -315,9 +346,24 @@ export default function Dashboard({ onSettingsChange }: Props) {
                 userName={selectedUser.firstname}
                 month={MONTHS[month - 1]}
                 year={year}
+                target={selectedTarget}
+                onSetTarget={(v) => selectedUserId != null && setTargetFor(selectedUserId, v)}
               />
               <NonBillableChart projects={data.nonBillable} userName={selectedUser.firstname} />
             </div>
+
+            {/* Coach-Panel, wenn unter Mindestziel */}
+            {advice?.belowTarget && selectedTarget !== null && (
+              <div style={{ marginTop: 22 }}>
+                <CoachPanel
+                  userName={selectedUser.firstname}
+                  targetPct={selectedTarget}
+                  actualPct={data.productivity.productivityPct}
+                  advice={advice}
+                  timeWasters={data.timeWasters}
+                />
+              </div>
+            )}
 
             {/* Bottom row */}
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 22, marginTop: 22 }} className="responsive-grid">

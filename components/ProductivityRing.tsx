@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import type { ProductivityResult } from "@/lib/metrics/productivity";
 
 interface Props {
@@ -8,12 +9,24 @@ interface Props {
   userName: string;
   month: string;
   year: number;
+  target: number | null;
+  onSetTarget: (value: number | null) => void;
 }
 
-export default function ProductivityRing({ productivity, delta, userName, month, year }: Props) {
+export default function ProductivityRing({ productivity, delta, userName, month, year, target, onSetTarget }: Props) {
   const pct = Math.min(Math.max(productivity.productivityPct, 0), 100);
   const deltaSign = delta > 0 ? "▲ +" : delta < 0 ? "▼ " : "";
   const deltaPositive = delta >= 0;
+  const belowTarget = target !== null && productivity.productivityPct < target;
+
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(String(target ?? 75));
+
+  function save() {
+    const v = Number(draft);
+    onSetTarget(Number.isFinite(v) && v > 0 ? Math.min(100, Math.round(v)) : null);
+    setEditing(false);
+  }
 
   return (
     <section className="card">
@@ -65,8 +78,18 @@ export default function ProductivityRing({ productivity, delta, userName, month,
         {/* Meta */}
         <div style={{ flex: 1, minWidth: 160 }}>
           <p style={{ fontFamily: "Fredoka, sans-serif", fontSize: 15, fontWeight: 600, color: "var(--plum-soft)" }}>
-            {userName} war diesen Monat ein richtiger Star 🌟
+            {belowTarget
+              ? `${userName} liegt unter dem Mindestziel 💪`
+              : target !== null
+              ? `${userName} hat das Ziel erreicht — top! 🌟`
+              : `${userName} war diesen Monat ein richtiger Star 🌟`}
           </p>
+
+          {belowTarget && (
+            <div style={{ display: "inline-flex", alignItems: "center", gap: 6, marginTop: 10, marginRight: 8, background: "#fff0f3", color: "#c0145a", fontWeight: 800, fontFamily: "Fredoka, sans-serif", padding: "6px 13px", borderRadius: 999, fontSize: 13, border: "1.5px solid #ffd0d8" }}>
+              ⚠️ {target! - productivity.productivityPct}% unter Ziel ({target}%)
+            </div>
+          )}
 
           {delta !== 0 && (
             <div
@@ -124,6 +147,36 @@ export default function ProductivityRing({ productivity, delta, userName, month,
               * Kein Stellengrad gefunden — Verhältnis zu Total.
             </p>
           )}
+
+          {/* Mindestziel festlegen / bearbeiten */}
+          <div style={{ marginTop: 16, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+            {editing ? (
+              <>
+                <span style={{ fontSize: 13, fontWeight: 700, color: "var(--plum-soft)" }}>🎯 Mindestziel</span>
+                <input
+                  type="number"
+                  min={0}
+                  max={100}
+                  value={draft}
+                  autoFocus
+                  onChange={(e) => setDraft(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") save(); if (e.key === "Escape") setEditing(false); }}
+                  style={{ width: 64, padding: "5px 8px", borderRadius: 10, border: "1.5px solid #ffc4e3", fontWeight: 700, fontFamily: "Quicksand, sans-serif", color: "var(--plum)", outline: "none" }}
+                />
+                <span style={{ fontWeight: 700, color: "var(--plum-soft)" }}>%</span>
+                <button onClick={save} className="chip" style={{ padding: "5px 11px" }}>✓ Speichern</button>
+                <button onClick={() => setEditing(false)} className="chip" style={{ padding: "5px 11px" }}>✕</button>
+              </>
+            ) : (
+              <button
+                onClick={() => { setDraft(String(target ?? 75)); setEditing(true); }}
+                className="chip"
+                style={{ fontWeight: 700 }}
+              >
+                🎯 {target !== null ? `Mindestziel: ${target}% · ✏️ ändern` : "Mindestziel festlegen"}
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </section>

@@ -73,6 +73,9 @@ Bei jedem Start wird `git pull --ff-only` ausgeführt. Bei neuen Commits:
 
 ## Weitere Funktionen
 
+- **Mindestziel pro Mitarbeiter** 🎯 — direkt im Produktivitäts-Ring festlegen. Wird das Ziel
+  verfehlt, erscheint der **Loco-Coach**: die größten internen **Zeitfresser** (Projekt · Aufgabe)
+  plus konkrete, datenbasierte **Lösungsvorschläge**. Ziele liegen lokal in `~/.loco-moco/targets.json`.
 - **Mitarbeiter-/Monatswahl** per Dropdown
 - **Monatsvergleich** ⚖️ — zwei Monate grafisch nebeneinander (Produktivität, verrechenbare/total/interne Stunden mit Delta)
 - **Bericht teilen / als PDF** — 📄 PDF (Sichern-Dialog) und ✉️ Teilen (macOS-Sheet: Mail, AirDrop …); auch über Menü **Ablage** (Cmd+P / Cmd+⇧+S)
