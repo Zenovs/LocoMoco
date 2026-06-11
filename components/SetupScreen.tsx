@@ -54,6 +54,11 @@ export default function SetupScreen({ onSuccess }: Props) {
     girly: "Girly ✨ (verspielt, rosa)",
     pro: "Pro (clean, professionell)",
     ocean: "Ocean (ruhiges Blau/Türkis)",
+    lego: "Lego 🧱 (knallbunt)",
+    starwars: "Star Wars 🌌 (Weltall, dunkel)",
+    unihockey: "Unihockey 🏑 (sportlich)",
+    darknerd: "Dark Nerd 🖥️ (Terminal, dunkel)",
+    ferien: "Ferien 🏖️ (Strand)",
   };
 
   // Bestehende Einstellungen vorbefüllen (wenn als Einstellungen geöffnet)

@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Pacifico&family=Fredoka:wght@400;500;600;700&family=Quicksand:wght@400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Pacifico&family=Fredoka:wght@400;500;600;700&family=Quicksand:wght@400;500;600;700&family=Orbitron:wght@500;700;900&family=Bangers&display=swap");
 @import "tailwindcss";
 
 /* ============================================================
@@ -117,6 +117,83 @@
   --sparkle-display: none;
 }
 
+/* ── LEGO: knallige Grundfarben, Comic-Schrift ── */
+[data-theme="lego"] {
+  --bubblegum:#d01012; --hotpink:#d01012; --blush:#ffe9a8; --cotton:#fffdf5;
+  --lilac:#006cb7; --periwinkle:#1aa3e0; --gold:#ffd500; --plum:#1a1a1a; --plum-soft:#5a5a5a; --mint:#00af4d;
+  --holo: linear-gradient(110deg,#d01012,#ffd500,#006cb7,#00af4d,#d01012);
+  --accent-grad: linear-gradient(110deg,#d01012,#ff5a00,#ffd500);
+  --ring-stops:#d01012,#ffd500,#006cb7,#00af4d,#d01012;
+  --glow: rgba(208,16,18,.4);
+  --app-bg: radial-gradient(1000px 500px at 10% -8%, #fff3b0 0%, transparent 55%), radial-gradient(900px 600px at 95% 0%, #bfe3ff 0%, transparent 55%), linear-gradient(160deg,#fffef7,#fff7e6);
+  --card-bg: rgba(255,255,255,.92); --card-border:#1a1a1a; --card-glow:0 8px 0 -2px rgba(0,0,0,.18), 0 16px 40px -16px rgba(0,0,0,.3);
+  --bar-bg:#ffe9a8; --chip-border:#1a1a1a;
+  --font-display:'Bangers', system-ui, sans-serif; --font-heading:'Fredoka', sans-serif; --font-body:-apple-system,'Quicksand',sans-serif;
+  --sparkle-display:none;
+}
+
+/* ── STAR WARS: tiefes Weltall, gelber Logo-Schriftzug, Lichtschwert-Akzente ── */
+[data-theme="starwars"] {
+  color-scheme: dark;
+  --bubblegum:#ffe81f; --hotpink:#ffe81f; --blush:#1b2a4a; --cotton:#0a0a12;
+  --lilac:#2e8bff; --periwinkle:#4dd0ff; --gold:#ffe81f; --plum:#e8e8ee; --plum-soft:#9aa0b5; --mint:#4dff88;
+  --holo: linear-gradient(110deg,#ffe81f,#ffd000,#ffe81f);
+  --accent-grad: linear-gradient(110deg,#ffe81f,#ffc400,#ffe81f);
+  --ring-stops:#2e8bff,#4dd0ff,#ffe81f,#ff3b3b,#2e8bff;
+  --glow: rgba(255,232,31,.3);
+  --app-bg: radial-gradient(1200px 700px at 50% -10%, #14213d 0%, transparent 60%), radial-gradient(800px 600px at 90% 10%, #1a1030 0%, transparent 55%), #05060a;
+  --card-bg: rgba(18,20,32,.72); --card-border:rgba(120,140,200,.25); --card-glow:0 18px 50px -16px rgba(0,0,0,.8);
+  --bar-bg:rgba(120,140,200,.18); --chip-border:rgba(120,140,200,.35);
+  --font-display:'Orbitron', system-ui, sans-serif; --font-heading:'Orbitron', system-ui, sans-serif; --font-body:-apple-system, system-ui, sans-serif;
+  --sparkle-display:none;
+}
+
+/* ── UNIHOCKEY: sportlich Orange (Ball) / Grün (Feld) / Blau ── */
+[data-theme="unihockey"] {
+  --bubblegum:#ff6a13; --hotpink:#ff6a13; --blush:#d7f5df; --cotton:#f3fff6;
+  --lilac:#1aa84a; --periwinkle:#1565ff; --gold:#ffd23f; --plum:#10243a; --plum-soft:#4a6178; --mint:#2bd47a;
+  --holo: linear-gradient(110deg,#ff6a13,#ffd23f,#1aa84a,#1565ff,#ff6a13);
+  --accent-grad: linear-gradient(110deg,#ff6a13,#ff8c00,#ffd23f);
+  --ring-stops:#ff6a13,#ffd23f,#1aa84a,#1565ff,#ff6a13;
+  --glow: rgba(255,106,19,.35);
+  --app-bg: radial-gradient(1000px 500px at 12% -8%, #d7f5df 0%, transparent 55%), radial-gradient(900px 600px at 95% 0%, #ffe6cc 0%, transparent 55%), linear-gradient(160deg,#f4fff7,#eef6ff);
+  --card-bg: rgba(255,255,255,.86); --card-border:#cfe9d6; --card-glow:0 14px 40px -16px rgba(26,168,74,.3);
+  --bar-bg:#e3f3e8; --chip-border:#bfe3cc;
+  --font-display:'Fredoka', sans-serif; --font-heading:'Fredoka', sans-serif; --font-body:-apple-system,'Quicksand',sans-serif;
+  --sparkle-display:none;
+}
+
+/* ── DARK NERD: Terminal/Matrix, Monospace, Neon-Grün ── */
+[data-theme="darknerd"] {
+  color-scheme: dark;
+  --bubblegum:#39d353; --hotpink:#39d353; --blush:#161b22; --cotton:#0d1117;
+  --lilac:#58a6ff; --periwinkle:#79c0ff; --gold:#e3b341; --plum:#c9d1d9; --plum-soft:#8b949e; --mint:#3fb950;
+  --holo: linear-gradient(110deg,#39d353,#58a6ff,#39d353);
+  --accent-grad: linear-gradient(110deg,#238636,#2ea043,#39d353);
+  --ring-stops:#39d353,#58a6ff,#3fb950,#79c0ff,#39d353;
+  --glow: rgba(57,211,83,.25);
+  --app-bg: radial-gradient(1000px 600px at 50% -10%, #0f1620 0%, transparent 60%), #0d1117;
+  --card-bg: rgba(22,27,34,.82); --card-border:#30363d; --card-glow:0 18px 50px -18px rgba(0,0,0,.7);
+  --bar-bg:#21262d; --chip-border:#30363d;
+  --font-display:ui-monospace,'SF Mono','Fira Code',Menlo,monospace; --font-heading:ui-monospace,'SF Mono',Menlo,monospace; --font-body:ui-monospace,'SF Mono',Menlo,monospace;
+  --sparkle-display:none;
+}
+
+/* ── FERIEN: Strand, Türkis-See, Sonnenuntergang ── */
+[data-theme="ferien"] {
+  --bubblegum:#ff7e5f; --hotpink:#ff6f61; --blush:#ffe7c2; --cotton:#fffaf0;
+  --lilac:#2ec4b6; --periwinkle:#00a5cf; --gold:#ffd23f; --plum:#0a4d5c; --plum-soft:#4a7c87; --mint:#3ddc97;
+  --holo: linear-gradient(110deg,#ff7e5f,#ffd23f,#2ec4b6,#00a5cf,#ff7e5f);
+  --accent-grad: linear-gradient(110deg,#ff7e5f,#ff9a5a,#ffd23f);
+  --ring-stops:#ff7e5f,#ffd23f,#2ec4b6,#00a5cf,#ff7e5f;
+  --glow: rgba(46,196,182,.35);
+  --app-bg: radial-gradient(1100px 600px at 50% -12%, #bdeaff 0%, transparent 55%), radial-gradient(700px 500px at 88% 4%, #ffe3a3 0%, transparent 55%), linear-gradient(165deg,#e8fbff 0%,#fff6e6 100%);
+  --card-bg: rgba(255,255,255,.8); --card-border:#bfe9e3; --card-glow:0 16px 44px -16px rgba(0,165,207,.3);
+  --bar-bg:#d7f3ef; --chip-border:#bfe9e3;
+  --font-display:'Pacifico', cursive; --font-heading:'Quicksand', sans-serif; --font-body:'Quicksand', sans-serif;
+  --sparkle-display:block;
+}
+
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; }
 
@@ -176,6 +253,8 @@ body {
 }
 
 /* ── PDF-/Druck-Export: Glaseffekt aus, sonst dunkel im Export ── */
+/* Texte für dunkle Themes lesbar machen (Karten werden im Export hell). */
+body.exporting { --plum: #1a1a1a !important; --plum-soft: #555555 !important; }
 body.exporting .card,
 body.exporting .chip {
   background: #ffffff !important;

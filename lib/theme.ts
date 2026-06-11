@@ -4,7 +4,16 @@ import path from "path";
 // Aktives Theme — bewusst getrennt von den MOCO-Credentials gespeichert
 // (~/.loco-moco/theme), damit es auch ohne abgeschlossenes Setup gilt.
 // Auflösung: Datei → ENV LOCO_THEME → "girly".
-export const AVAILABLE_THEMES = ["girly", "pro", "ocean"] as const;
+export const AVAILABLE_THEMES = [
+  "girly",
+  "pro",
+  "ocean",
+  "lego",
+  "starwars",
+  "unihockey",
+  "darknerd",
+  "ferien",
+] as const;
 export type ThemeName = (typeof AVAILABLE_THEMES)[number];
 
 const FILE = path.join(process.env.HOME ?? "/tmp", ".loco-moco", "theme");

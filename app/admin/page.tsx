@@ -11,6 +11,11 @@ const THEMES = [
   { key: "girly", label: "Girly ✨" },
   { key: "pro", label: "Pro" },
   { key: "ocean", label: "Ocean" },
+  { key: "lego", label: "Lego 🧱" },
+  { key: "starwars", label: "Star Wars 🌌" },
+  { key: "unihockey", label: "Unihockey 🏑" },
+  { key: "darknerd", label: "Dark Nerd 🖥️" },
+  { key: "ferien", label: "Ferien 🏖️" },
 ];
 
 const input: React.CSSProperties = {
