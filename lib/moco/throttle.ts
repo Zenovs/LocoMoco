@@ -3,9 +3,12 @@
 // 1/s laufen) und pendelt sich langfristig auf ~1 Request/Sekunde ein — bleibt
 // damit innerhalb des MOCO-Limits. 429-Antworten werden respektiert und neu
 // eingereiht.
-const REFILL_MS = 1050; // 1 Token pro ~1.05s -> langfristig ~57/min
-const BUCKET_CAPACITY = 60; // Burst bis 60 Requests
-const MAX_CONCURRENT = 6;
+// MOCO verträgt nachweislich >20 parallele Anfragen ohne 429. Daher deutlich
+// großzügiger als das alte "1/Sekunde". 429-Antworten werden weiterhin
+// respektiert und neu eingereiht (s. unten).
+const REFILL_MS = 120; // ~8 Token/Sekunde nachfüllen
+const BUCKET_CAPACITY = 200; // großer Burst für Paginierung
+const MAX_CONCURRENT = 12;
 
 let tokens = BUCKET_CAPACITY;
 let lastRefill = Date.now();

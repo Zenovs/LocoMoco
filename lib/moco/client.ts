@@ -20,28 +20,62 @@ function headers(apiKey: string): HeadersInit {
   };
 }
 
+async function fetchPage<T>(
+  url: string,
+  apiKey: string,
+  params: Record<string, string>,
+  page: number,
+  perPage: number
+): Promise<Response> {
+  const u = buildUrl(url, { ...params, per_page: String(perPage), page: String(page) });
+  const res = await throttledFetch(u, { headers: headers(apiKey) });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`MOCO API ${res.status}: ${text}`);
+  }
+  return res;
+}
+
+// Holt alle Seiten. Liest aus Seite 1 die Gesamtzahl (X-Total) und holt die
+// restlichen Seiten PARALLEL (statt sequenziell) — drastisch schneller bei
+// großen Datenmengen. Fällt auf Link-Header-Folgen zurück, falls X-Total fehlt.
 async function fetchAllPages<T>(
   url: string,
   apiKey: string,
   params: Record<string, string> = {}
 ): Promise<T[]> {
-  const results: T[] = [];
-  let nextUrl: string | null = buildUrl(url, { ...params, per_page: "100" });
+  const perPage = 100;
+  const firstRes = await fetchPage<T>(url, apiKey, params, 1, perPage);
+  const firstPage = (await firstRes.json()) as T[];
 
-  while (nextUrl) {
-    const res = await throttledFetch(nextUrl, { headers: headers(apiKey) });
-    if (!res.ok) {
-      const text = await res.text();
-      throw new Error(`MOCO API ${res.status}: ${text}`);
-    }
-    const page = (await res.json()) as T[];
-    results.push(...page);
-
-    const linkHeader = res.headers.get("Link") ?? "";
-    const match = linkHeader.match(/<([^>]+)>;\s*rel="next"/);
-    nextUrl = match ? match[1] : null;
+  const total = Number(firstRes.headers.get("X-Total"));
+  if (Number.isFinite(total) && total > 0) {
+    const totalPages = Math.ceil(total / perPage);
+    if (totalPages <= 1) return firstPage;
+    const rest = await Promise.all(
+      Array.from({ length: totalPages - 1 }, (_, i) => i + 2).map(async (page) => {
+        const r = await fetchPage<T>(url, apiKey, params, page, perPage);
+        return (await r.json()) as T[];
+      })
+    );
+    return [firstPage, ...rest].flat();
   }
 
+  // Fallback: ohne X-Total sequenziell den Link-Headern folgen
+  const results: T[] = [...firstPage];
+  let nextUrl: string | null = (() => {
+    const link = firstRes.headers.get("Link") ?? "";
+    const m = link.match(/<([^>]+)>;\s*rel="next"/);
+    return m ? m[1] : null;
+  })();
+  while (nextUrl) {
+    const res = await throttledFetch(nextUrl, { headers: headers(apiKey) });
+    if (!res.ok) throw new Error(`MOCO API ${res.status}: ${await res.text()}`);
+    results.push(...((await res.json()) as T[]));
+    const link = res.headers.get("Link") ?? "";
+    const m = link.match(/<([^>]+)>;\s*rel="next"/);
+    nextUrl = m ? m[1] : null;
+  }
   return results;
 }
 
