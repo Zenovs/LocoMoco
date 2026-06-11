@@ -13,8 +13,6 @@ export function calcSleepingProjects(
   allProjects: MocoProject[],
   thresholdDays = 60
 ): SleepingProject[] {
-  const activeProjectIds = new Set(recentActivities.map((a) => a.project.id));
-
   // Abonnement-Projekte werden grundsätzlich ignoriert (laufen dauerhaft).
   const isAbo = (name: string) => name.toLowerCase().includes("abonnement");
 
@@ -31,7 +29,7 @@ export function calcSleepingProjects(
   today.setHours(0, 0, 0, 0);
 
   return allProjects
-    .filter((p) => p.active && !activeProjectIds.has(p.id) && !isAbo(p.name))
+    .filter((p) => p.active && !isAbo(p.name))
     .map((p) => {
       const lastDate = lastDateByProject.get(p.id) ?? null;
       const daysSince = lastDate

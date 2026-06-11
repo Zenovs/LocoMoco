@@ -41,7 +41,8 @@ export function calcOverBudgetProjects(
       projectId,
       projectName: project?.name ?? `Projekt #${projectId}`,
       hoursTotal: Math.round(report.hours_total * 10) / 10,
-      hoursPlanned: Math.round((report.hours_total - report.hours_remaining) * 10) / 10,
+      // Budget-Stunden = gebuchte + (verbleibende, bei Überbudget negativ)
+      hoursPlanned: Math.round((report.hours_total + report.hours_remaining) * 10) / 10,
       hoursOver: Math.round(Math.abs(report.hours_remaining) * 10) / 10,
       progressPct: Math.round(report.budget_progress_in_percentage),
     });

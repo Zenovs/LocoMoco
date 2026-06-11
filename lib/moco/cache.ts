@@ -1,4 +1,12 @@
-const TTL_MS = 10 * 60 * 1000; // 10 minutes
+import fs from "fs";
+import path from "path";
+import crypto from "crypto";
+
+// In-Memory-Cache mit zusätzlicher Disk-Persistenz unter ~/.loco-moco/cache.
+// Dadurch sind auch frische App-Starts schnell (der Cache überlebt den
+// Server-Neustart). Bei Disk-Fehlern wird transparent auf Memory-only
+// zurückgefallen.
+const TTL_MS = 20 * 60 * 1000; // 20 Minuten
 
 interface CacheEntry<T> {
   data: T;
@@ -7,20 +15,64 @@ interface CacheEntry<T> {
 
 const store = new Map<string, CacheEntry<unknown>>();
 
+const CACHE_DIR = path.join(process.env.HOME ?? "/tmp", ".loco-moco", "cache");
+
+function diskPath(key: string): string {
+  const safe = crypto.createHash("sha1").update(key).digest("hex");
+  return path.join(CACHE_DIR, `${safe}.json`);
+}
+
 export function cacheGet<T>(key: string): T | null {
   const entry = store.get(key) as CacheEntry<T> | undefined;
-  if (!entry) return null;
-  if (Date.now() > entry.expires) {
-    store.delete(key);
+  if (entry) {
+    if (Date.now() > entry.expires) {
+      store.delete(key);
+      return null;
+    }
+    return entry.data;
+  }
+
+  // Memory-Miss -> Disk versuchen
+  try {
+    const raw = fs.readFileSync(diskPath(key), "utf-8");
+    const parsed = JSON.parse(raw) as CacheEntry<T>;
+    if (Date.now() > parsed.expires) {
+      fs.rmSync(diskPath(key), { force: true });
+      return null;
+    }
+    store.set(key, parsed); // in Memory aufwärmen
+    return parsed.data;
+  } catch {
     return null;
   }
-  return entry.data;
 }
 
 export function cacheSet<T>(key: string, data: T, ttlMs = TTL_MS): void {
-  store.set(key, { data, expires: Date.now() + ttlMs });
+  const entry: CacheEntry<T> = { data, expires: Date.now() + ttlMs };
+  store.set(key, entry);
+  try {
+    fs.mkdirSync(CACHE_DIR, { recursive: true });
+    fs.writeFileSync(diskPath(key), JSON.stringify(entry), { mode: 0o600 });
+  } catch {
+    /* Disk optional — Memory-Cache reicht */
+  }
 }
 
 export function cacheDelete(key: string): void {
   store.delete(key);
+  try {
+    fs.rmSync(diskPath(key), { force: true });
+  } catch {
+    /* ignore */
+  }
+}
+
+// Leert den gesamten Cache (Memory + Disk) — für den "Aktualisieren"-Button.
+export function cacheClearAll(): void {
+  store.clear();
+  try {
+    fs.rmSync(CACHE_DIR, { recursive: true, force: true });
+  } catch {
+    /* ignore */
+  }
 }

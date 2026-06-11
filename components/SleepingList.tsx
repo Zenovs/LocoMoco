@@ -9,7 +9,7 @@ interface Props {
 const AVATARS = ["🌙", "💤", "🦄", "🌸", "⭐", "🌷", "🫧", "🦋"];
 
 function daysLabel(days: number): string {
-  if (days >= 9999) return "nie gebucht";
+  if (days >= 9999) return "über 3 Monate";
   return `${days} Tag${days === 1 ? "" : "e"}`;
 }
 

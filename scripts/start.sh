@@ -10,7 +10,8 @@ done
 export NVM_DIR="$HOME/.nvm"
 # shellcheck source=/dev/null
 [ -s "$NVM_DIR/nvm.sh" ] && source "$NVM_DIR/nvm.sh"
-nvm use 22 --silent 2>/dev/null || true
+# Node 22 aktivieren; falls (noch) nicht vorhanden, einmalig nachinstallieren
+nvm use 22 --silent 2>/dev/null || nvm install 22 2>/dev/null || true
 
 APP_DIR="$HOME/.loco-moco/app"
 PORT=4577

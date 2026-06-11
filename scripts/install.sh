@@ -31,9 +31,17 @@ fi
 step "Xcode Command Line Tools"
 if ! xcode-select -p &>/dev/null; then
   yellow "Werden jetzt installiert — bitte den Dialog bestätigen…"
-  xcode-select --install
-  # Warte bis die Installation fertig ist
-  until xcode-select -p &>/dev/null; do sleep 5; done
+  xcode-select --install 2>/dev/null || true
+  # Warte bis die Installation fertig ist (max. ~20 Min), sonst klare Meldung
+  for _ in $(seq 1 240); do
+    xcode-select -p &>/dev/null && break
+    sleep 5
+  done
+  if ! xcode-select -p &>/dev/null; then
+    red "Xcode Command Line Tools wurden nicht installiert."
+    red "Bitte den Installations-Dialog bestätigen und das Skript erneut starten."
+    exit 1
+  fi
   green "Fertig."
 else
   green "Bereits vorhanden."
@@ -79,6 +87,10 @@ export NVM_DIR="$HOME/.nvm"
 if [[ ! -s "$NVM_DIR/nvm.sh" ]]; then
   yellow "nvm wird installiert…"
   curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash
+  if [[ ! -s "$NVM_DIR/nvm.sh" ]]; then
+    red "nvm-Installation fehlgeschlagen — bitte Internetverbindung prüfen und erneut versuchen."
+    exit 1
+  fi
   green "nvm installiert."
 fi
 

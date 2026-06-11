@@ -14,7 +14,9 @@ export async function GET() {
   }
 
   try {
-    const from = toISODate(subtractDays(new Date(), 65));
+    // 95-Tage-Fenster: liefert echte "letzte Buchung"-Daten für Projekte, die
+    // 60–95 Tage schlafen; alles Ältere zählt als "über 3 Monate".
+    const from = toISODate(subtractDays(new Date(), 95));
     const to = toISODate(new Date());
     const [recentActivities, projects] = await Promise.all([
       getActivities(config, from, to),

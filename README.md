@@ -67,9 +67,23 @@ Bei jedem Start wird `git pull --ff-only` ausgeführt. Bei neuen Commits:
 | # | Name | Was es zeigt |
 |---|------|--------------|
 | 1 | 💖 Produktivität | Verrechenbare ÷ Sollstunden im Monat, inkl. Delta zum Vormonat |
-| 2 | 🩷 Nicht-verrechenbar | Top 5 Projekte mit höchstem Anteil interner Stunden |
+| 2 | 🩷 Nicht-verrechenbar | Top 5 Projekte mit den meisten internen (nicht verrechenbaren) **Stunden** |
 | 3 | 🚨 Über Budget | Projekte, auf die gebucht wurde und die über Budget sind |
-| 4 | 😴 Schläferprojekte | Aktive Projekte ohne Buchung seit 60+ Tagen (global) |
+| 4 | 😴 Schläferprojekte | Aktive Projekte ohne Buchung seit 60+ Tagen (global), inkl. **Kunde**; `Abonnement`-Projekte werden ignoriert |
+
+## Weitere Funktionen
+
+- **Mitarbeiter-/Monatswahl** per Dropdown
+- **Monatsvergleich** ⚖️ — zwei Monate grafisch nebeneinander (Produktivität, verrechenbare/total/interne Stunden mit Delta)
+- **Bericht teilen / als PDF** — 📄 PDF (Sichern-Dialog) und ✉️ Teilen (macOS-Sheet: Mail, AirDrop …); auch über Menü **Ablage** (Cmd+P / Cmd+⇧+S)
+- **🔄 Aktualisieren** — leert den Cache und holt frische Zahlen von MOCO
+
+## Cache & Tempo
+
+MOCO-Daten werden 20 Min lang zwischengespeichert (im RAM **und** auf der Platte unter
+`~/.loco-moco/cache/`), damit auch frische App-Starts schnell sind. Mit **🔄 Aktualisieren**
+lässt sich jederzeit neu laden. Schläferprojekte werden separat nachgeladen, damit das
+Dashboard sofort erscheint.
 
 ## Manuell updaten
 

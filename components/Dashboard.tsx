@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { MocoUser } from "@/types/moco";
 import type { ProductivityResult } from "@/lib/metrics/productivity";
 import type { NonBillableProject } from "@/lib/metrics/nonBillable";
@@ -85,26 +85,32 @@ export default function Dashboard({ onSettingsChange }: Props) {
       .catch(() => setError("Mitarbeiter konnten nicht geladen werden."));
   }, []);
 
+  const [refreshing, setRefreshing] = useState(false);
+  const [refreshTick, setRefreshTick] = useState(0);
+  const reqRef = useRef(0);
+
   const loadDashboard = useCallback(() => {
     if (!selectedUserId) return;
+    const myReq = ++reqRef.current; // nur die jeweils letzte Antwort gewinnt
     setLoading(true);
     setError("");
-    setSleeping(null);
     fetch(`/api/dashboard?userId=${selectedUserId}&year=${year}&month=${month}`)
       .then((r) => r.json())
       .then((d: DashboardData & { error?: string }) => {
+        if (myReq !== reqRef.current) return; // veraltete Antwort verwerfen
         if (d.error) setError(d.error);
         else setData(d);
       })
-      .catch(() => setError("Daten konnten nicht geladen werden."))
-      .finally(() => setLoading(false));
+      .catch(() => { if (myReq === reqRef.current) setError("Daten konnten nicht geladen werden."); })
+      .finally(() => { if (myReq === reqRef.current) setLoading(false); });
   }, [selectedUserId, year, month]);
 
-  useEffect(() => { loadDashboard(); }, [loadDashboard]);
+  useEffect(() => { loadDashboard(); }, [loadDashboard, refreshTick]);
 
   // Schläferprojekte separat laden (global, unabhängig von User/Monat)
   useEffect(() => {
     let cancelled = false;
+    setSleeping(null);
     fetch("/api/sleeping")
       .then((r) => r.json())
       .then((d: { sleeping?: SleepingProject[] }) => {
@@ -114,7 +120,20 @@ export default function Dashboard({ onSettingsChange }: Props) {
         if (!cancelled) setSleeping([]);
       });
     return () => { cancelled = true; };
-  }, []);
+  }, [refreshTick]);
+
+  // Daten frisch von MOCO holen (Cache leeren)
+  const handleRefresh = useCallback(() => {
+    if (refreshing) return;
+    setRefreshing(true);
+    fetch("/api/refresh", { method: "POST" })
+      .catch(() => {})
+      .finally(() => {
+        setRefreshTick((t) => t + 1);
+        setCmpData(null);
+        window.setTimeout(() => setRefreshing(false), 600);
+      });
+  }, [refreshing]);
 
   // Vergleichsdaten laden
   useEffect(() => {
@@ -135,7 +154,7 @@ export default function Dashboard({ onSettingsChange }: Props) {
       .catch(() => {})
       .finally(() => { if (!cancelled) setCmpLoading(false); });
     return () => { cancelled = true; };
-  }, [compare, selectedUserId, year, month, cmpYear, cmpMonth]);
+  }, [compare, selectedUserId, year, month, cmpYear, cmpMonth, refreshTick]);
 
   // Export-Brücke: PDF sichern / teilen (nativ via WKWebView, sonst Browser-Fallback)
   useEffect(() => {
@@ -195,6 +214,10 @@ export default function Dashboard({ onSettingsChange }: Props) {
           </div>
 
           <div className="no-print" style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <button onClick={handleRefresh} className="chip" disabled={refreshing} aria-label="Aktualisieren" style={{ fontWeight: 700 }}>
+              <span style={{ display: "inline-block", animation: refreshing ? "spin 1s linear infinite" : "none" }}>🔄</span>
+              {refreshing ? " Lädt…" : " Aktualisieren"}
+            </button>
             <button onClick={() => triggerExport("pdf")} className="chip" style={{ fontWeight: 700 }}>
               📄 PDF
             </button>
@@ -330,6 +353,7 @@ export default function Dashboard({ onSettingsChange }: Props) {
         @media (max-width: 820px) {
           .responsive-grid { grid-template-columns: 1fr !important; }
         }
+        @keyframes spin { to { transform: rotate(360deg); } }
         body.exporting .no-print { display: none !important; }
         body.exporting { background: #fff4fa !important; }
         @media print {

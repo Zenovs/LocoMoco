@@ -28,6 +28,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
                           styleMask: [.titled, .closable, .miniaturizable, .resizable],
                           backing: .buffered, defer: false)
         window.title = "Loco Moco"
+        window.appearance = NSAppearance(named: .aqua) // App bewusst immer hell
         window.minSize = NSSize(width: 720, height: 560)
         window.setFrameAutosaveName("LocoMocoWindow")
         window.center()
