@@ -4,8 +4,8 @@
 // damit innerhalb des MOCO-Limits. 429-Antworten werden respektiert und neu
 // eingereiht.
 const REFILL_MS = 1050; // 1 Token pro ~1.05s -> langfristig ~57/min
-const BUCKET_CAPACITY = 40; // Burst bis 40 Requests
-const MAX_CONCURRENT = 4;
+const BUCKET_CAPACITY = 60; // Burst bis 60 Requests
+const MAX_CONCURRENT = 6;
 
 let tokens = BUCKET_CAPACITY;
 let lastRefill = Date.now();

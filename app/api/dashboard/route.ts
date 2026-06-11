@@ -4,14 +4,13 @@ import {
   getActivities,
   getEmployments,
   getProjectReport,
-  getProjects,
   getUsers,
 } from "@/lib/moco/client";
 import { calcProductivity } from "@/lib/metrics/productivity";
 import { calcTopNonBillableProjects } from "@/lib/metrics/nonBillable";
 import { calcOverBudgetProjects } from "@/lib/metrics/overBudget";
 import { addMonths, getMonthRange } from "@/lib/metrics/dates";
-import type { MocoProjectReport } from "@/types/moco";
+import type { MocoProject, MocoProjectReport } from "@/types/moco";
 
 export async function GET(req: NextRequest) {
   const config = readConfig();
@@ -33,14 +32,32 @@ export async function GET(req: NextRequest) {
     const prev = addMonths(year, month, -1);
     const { from: prevFrom, to: prevTo } = getMonthRange(prev.year, prev.month);
 
-    const [users, employments, activities, prevActivities, projects] =
+    // Aktivitäten serverseitig auf die gewählte Person filtern -> deutlich
+    // weniger Daten und damit ein viel schnellerer Erstabruf. getProjects (alle
+    // Firmenprojekte) wird hier NICHT geladen — die Projektnamen für "Über
+    // Budget" stehen bereits in den Aktivitäten.
+    const [users, employments, activities, prevActivities] =
       await Promise.all([
         getUsers(config),
         getEmployments(config),
-        getActivities(config, from, to),
-        getActivities(config, prevFrom, prevTo),
-        getProjects(config),
+        getActivities(config, from, to, userId),
+        getActivities(config, prevFrom, prevTo, userId),
       ]);
+
+    // Minimale Projektliste (id + name) aus den Aktivitäten ableiten — reicht
+    // für die Namensanzeige in calcOverBudgetProjects.
+    const projectMap = new Map<number, MocoProject>();
+    for (const a of activities) {
+      if (!projectMap.has(a.project.id)) {
+        projectMap.set(a.project.id, {
+          id: a.project.id,
+          name: a.project.name,
+          active: true,
+          billable: a.project.billable,
+        });
+      }
+    }
+    const projects = [...projectMap.values()];
 
     // --- Metric 1: Productivity ---
     const productivity = calcProductivity(

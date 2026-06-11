@@ -82,16 +82,20 @@ export async function getEmployments(
 export async function getActivities(
   config: MocoConfig,
   from: string,
-  to: string
+  to: string,
+  userId?: number // optional serverseitig filtern -> viel weniger Daten
 ): Promise<MocoActivity[]> {
-  const key = `activities:${config.subdomain}:${from}:${to}`;
+  const key = `activities:${config.subdomain}:${from}:${to}:${userId ?? "all"}`;
   const cached = cacheGet<MocoActivity[]>(key);
   if (cached) return cached;
+
+  const params: Record<string, string> = { from, to };
+  if (userId) params.user_id = String(userId);
 
   const data = await fetchAllPages<MocoActivity>(
     `${baseUrl(config.subdomain)}/activities`,
     config.apiKey,
-    { from, to }
+    params
   );
   cacheSet(key, data);
   return data;

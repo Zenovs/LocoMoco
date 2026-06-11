@@ -11,6 +11,7 @@ import NonBillableChart from "./NonBillableChart";
 import OverBudgetList from "./OverBudgetList";
 import SleepingList from "./SleepingList";
 import MonthCompare, { type MonthSlot } from "./MonthCompare";
+import LoadingScreen from "./LoadingScreen";
 
 interface DashboardData {
   users: MocoUser[];
@@ -289,13 +290,7 @@ export default function Dashboard({ onSettingsChange }: Props) {
         )}
 
         {/* Loading */}
-        {loading && (
-          <div style={{ textAlign: "center", padding: "64px 0", color: "var(--hotpink)" }}>
-            <p style={{ fontFamily: "Fredoka, sans-serif", fontSize: "1.2rem" }} className="animate-pulse">
-              Zahlen werden geholt… 💫
-            </p>
-          </div>
-        )}
+        {loading && <LoadingScreen />}
 
         {/* Dashboard */}
         {!loading && data && selectedUser && (

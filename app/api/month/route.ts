@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
   try {
     const { from, to } = getMonthRange(year, month);
     const [activities, employments] = await Promise.all([
-      getActivities(config, from, to),
+      getActivities(config, from, to, userId),
       getEmployments(config),
     ]);
     const productivity = calcProductivity(activities, employments, userId, year, month);
