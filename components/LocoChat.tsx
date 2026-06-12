@@ -17,6 +17,9 @@ const TOOLS = [
   { type: "function", function: { name: "get_employee_productivity", description: "Produktivität, verrechenbare und erfasste Stunden einer Person in einem Monat.", parameters: { type: "object", properties: { name: { type: "string", description: "Name der Person, z. B. 'Dario'" }, year: { type: "number" }, month: { type: "number", description: "1-12" } }, required: ["name", "year", "month"] } } },
   { type: "function", function: { name: "get_company_overview", description: "Firmenweite Kennzahlen eines Monats: Auslastung, Verrechenbarkeit, (falls verfügbar) Umsatz.", parameters: { type: "object", properties: { year: { type: "number" }, month: { type: "number" } }, required: ["year", "month"] } } },
   { type: "function", function: { name: "get_wirtschaftlichkeit", description: "Kosten, erwirtschafteter Umsatz und Deckungsbeitrag pro Mitarbeiter (nur mit Lohn-Leserecht).", parameters: { type: "object", properties: { year: { type: "number" }, month: { type: "number" } }, required: ["year", "month"] } } },
+  { type: "function", function: { name: "get_hours_check", description: "Erfassungs-Check einer Person: Soll vs. erfasste Stunden, vergessene Tage, berücksichtigte Ferien/Krankheit.", parameters: { type: "object", properties: { name: { type: "string" }, year: { type: "number" }, month: { type: "number" } }, required: ["name", "year", "month"] } } },
+  { type: "function", function: { name: "get_sleeping_projects", description: "Projekte ohne Aktivität seit längerem (Schläferprojekte), inkl. Kunde und letzter Buchung.", parameters: { type: "object", properties: {}, required: [] } } },
+  { type: "function", function: { name: "get_project_status", description: "Projektstatus-Übersicht eines Monats: aktiv, über Budget, fast am Budget, ohne Aktivität, Termin überschritten.", parameters: { type: "object", properties: { year: { type: "number" }, month: { type: "number" } }, required: ["year", "month"] } } },
 ];
 
 let employeeCache: { id: number; name: string }[] | null = null;
@@ -58,6 +61,31 @@ async function executeTool(name: string, args: Record<string, unknown>): Promise
       const d = await r.json();
       if (d.error) return { error: d.error };
       return { people: d.people ?? [], hint: d.hint };
+    }
+    if (name === "get_hours_check") {
+      const nm = String(args.name ?? "").trim();
+      if (!nm) return { error: "Bitte den Namen der Person angeben." };
+      const emps = await loadEmployees();
+      const u = matchEmployee(emps, nm);
+      if (!u) return { error: `Mitarbeiter '${nm}' nicht gefunden.` };
+      const d = await fetch(`/api/dashboard?userId=${u.id}&year=${args.year}&month=${args.month}`).then((r) => r.json());
+      if (d.error) return { error: d.error };
+      const h = d.hoursCheck ?? {};
+      return { employee: u.name, sollHours: h.expectedToDate, recordedHours: h.recorded, deltaHours: h.delta, forgottenDays: h.missingDays, absenceDays: h.absenceDays, absenceHours: h.absenceHours };
+    }
+    if (name === "get_sleeping_projects") {
+      const r = await fetch(`/api/sleeping`);
+      if (r.status === 403) return { error: "Keine Berechtigung für firmenweite Projektdaten." };
+      const d = await r.json();
+      if (d.error) return { error: d.error };
+      return { sleeping: (d.sleeping ?? []).slice(0, 20) };
+    }
+    if (name === "get_project_status") {
+      const r = await fetch(`/api/company?year=${args.year}&month=${args.month}`);
+      if (r.status === 403) return { error: "Keine Berechtigung für firmenweite Daten." };
+      const d = await r.json();
+      if (d.error) return { error: d.error };
+      return { status: d.projectStatus, topOverBudget: (d.projects ?? []).filter((p: { hoursOver: number }) => p.hoursOver > 0).slice(0, 8) };
     }
     return { error: `Unbekanntes Tool: ${name}` };
   } catch (e) {
