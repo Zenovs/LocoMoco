@@ -1,0 +1,11 @@
+# Einmaliger Backup-Lauf der sensiblen Loco-Moco-Daten.
+# Installieren: sudo cp deploy/locomoco-backup.{service,timer} /etc/systemd/system/
+#               sudo systemctl daemon-reload && sudo systemctl enable --now locomoco-backup.timer
+[Unit]
+Description=Loco Moco — Backup der sensiblen Daten
+
+[Service]
+Type=oneshot
+User=locomoco
+Environment=HOME=/home/locomoco
+ExecStart=/opt/locomoco/app/deploy/backup.sh

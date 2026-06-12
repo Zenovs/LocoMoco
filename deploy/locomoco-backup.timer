@@ -1,0 +1,10 @@
+# Täglicher Backup-Lauf (nachts um 02:30, Nachholung nach Ausfall).
+[Unit]
+Description=Tägliches Loco-Moco-Backup
+
+[Timer]
+OnCalendar=*-*-* 02:30:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target

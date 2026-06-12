@@ -203,3 +203,36 @@ Gespeichert in `~/.loco-moco-client/server.txt`; Menü **Ablage → Server ände
 ## Etappe 2
 Login + Rollen sind aktiv (`LOCO_AUTH=1` + `AUTH_SECRET` im Dienst), bevor
 Lohn/Liquidität dazukommen.
+
+---
+
+## 11. Backup der sensiblen Daten (empfohlen vor Echtbetrieb)
+
+Alle sensiblen Daten liegen in `/home/locomoco/.loco-moco/` (config, users, roles,
+targets, rates, salaries, liquidity). Tägliches Backup per systemd-Timer:
+
+```bash
+sudo cp /opt/locomoco/app/deploy/locomoco-backup.{service,timer} /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now locomoco-backup.timer
+# Sofort einmal testen:
+sudo systemctl start locomoco-backup.service
+ls -lh /home/locomoco/loco-moco-backups/
+```
+
+Behält die letzten 14 Archive (Cache ausgenommen). Wiederherstellen:
+`tar xzf loco-moco-<datum>.tar.gz -C /home/locomoco/` (Dienst vorher stoppen).
+Tipp: das Backup-Verzeichnis zusätzlich auf einen anderen Rechner/NAS spiegeln.
+
+## 12. HTTPS intern (vor Lohn-/Liquiditätsdaten produktiv)
+
+Solange nur im vertrauten LAN, ist HTTP ok. **Bevor Löhne/Liquidität breit genutzt
+werden**, auf HTTPS umstellen (Caddy aus Schritt 9/10, internes Zertifikat):
+
+```bash
+# In /etc/hosts der Clients (oder internem DNS): <SERVER-IP> locomoco.intern
+# Caddys Root-CA auf den Client-Macs einmalig vertrauen (siehe Schritt 9).
+sudo ufw allow from 192.168.0.0/16 to any port 443 proto tcp
+```
+Danach erreichen Browser die App unter `https://locomoco.intern`. Der Mac-Client
+kann ebenfalls darauf zeigen (Menü Ablage → Server ändern → `https://locomoco.intern`).
