@@ -81,6 +81,44 @@ func errorHTML(_ server: String) -> String {
     """
 }
 
+// Shell-Skripte für die lokale KI (Ollama) — aus den Einstellungen ausgelöst.
+let OLLAMA_INSTALL_SH = """
+set -e
+BREW="$(command -v brew || echo /opt/homebrew/bin/brew)"
+command -v ollama >/dev/null 2>&1 || "$BREW" install ollama
+OB="$(command -v ollama || echo /opt/homebrew/bin/ollama)"
+"$BREW" services stop ollama >/dev/null 2>&1 || true
+pkill -x ollama >/dev/null 2>&1 || true
+sleep 1
+PLIST="$HOME/Library/LaunchAgents/ch.wireon.locomoco.ollama.plist"
+mkdir -p "$HOME/Library/LaunchAgents"
+cat > "$PLIST" <<PL
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+  <key>Label</key><string>ch.wireon.locomoco.ollama</string>
+  <key>ProgramArguments</key><array><string>$OB</string><string>serve</string></array>
+  <key>EnvironmentVariables</key><dict><key>OLLAMA_ORIGINS</key><string>*</string></dict>
+  <key>RunAtLoad</key><true/><key>KeepAlive</key><true/>
+</dict></plist>
+PL
+launchctl unload "$PLIST" >/dev/null 2>&1 || true
+launchctl load -w "$PLIST" >/dev/null 2>&1 || true
+sleep 2
+OLLAMA_ORIGINS="*" "$OB" pull qwen2.5:7b
+"""
+
+let OLLAMA_UNINSTALL_SH = """
+PLIST="$HOME/Library/LaunchAgents/ch.wireon.locomoco.ollama.plist"
+launchctl unload "$PLIST" >/dev/null 2>&1 || true
+rm -f "$PLIST"
+pkill -x ollama >/dev/null 2>&1 || true
+BREW="$(command -v brew || echo /opt/homebrew/bin/brew)"
+"$BREW" services stop ollama >/dev/null 2>&1 || true
+"$BREW" uninstall ollama >/dev/null 2>&1 || true
+rm -rf "$HOME/.ollama"
+"""
+
 final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, WKScriptMessageHandler {
     var window: NSWindow!
     var webView: WKWebView!
@@ -335,8 +373,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         switch action {
         case "pdf": savePDF(filename: filename)
         case "share": sharePDF(filename: filename, subject: subject)
+        case "installOllama": runOllamaScript(OLLAMA_INSTALL_SH, note: "Ollama wird installiert und das KI-Modell geladen (im Hintergrund, einige Minuten). Danach in den Einstellungen „prüfen“.")
+        case "uninstallOllama": runOllamaScript(OLLAMA_UNINSTALL_SH, note: "Ollama und Modelle werden entfernt.")
         default: break
         }
+    }
+
+    // Shell für die KI-Einrichtung im Hintergrund ausführen.
+    func runOllamaScript(_ script: String, note: String) {
+        let p = Process()
+        p.executableURL = URL(fileURLWithPath: "/bin/bash")
+        p.arguments = ["-lc", script]
+        var env = ProcessInfo.processInfo.environment
+        env["PATH"] = "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:" + (env["PATH"] ?? "")
+        p.environment = env
+        do { try p.run() } catch { showAlert("Fehler", error.localizedDescription); return }
+        showAlert("KI-Setup", note)
     }
 
     private func generatePDF(_ completion: @escaping (Data) -> Void) {
