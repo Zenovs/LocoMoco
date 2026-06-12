@@ -168,12 +168,24 @@ git add deploy/downloads/Loco-Moco-Mac.zip && git commit -m "Client-Update" && g
 ```
 
 ### So installiert der Mitarbeitende (steht auch auf dem Portal)
-1. ZIP von `http://<SERVER-IP>/` herunterladen, doppelklicken (entpackt).
-2. „Loco Moco" nach **Programme** ziehen.
-3. Erster Start: **Rechtsklick → Öffnen** (einmalig wegen Gatekeeper).
-4. **Server-Adresse** eingeben (Portal zeigt sie an, z. B. `http://192.168.1.50:4577`).
-   Gespeichert in `~/.loco-moco-client/server.txt`; später über Menü
-   **Ablage → Server ändern…** anpassbar.
+**Empfohlen — ein Terminal-Befehl** (das Portal zeigt ihn mit der richtigen IP):
+
+```bash
+curl -fsSL http://<SERVER-IP>/downloads/install-client.sh | LOCO_HOST=<SERVER-IP> bash
+```
+
+Installiert nach `/Applications`, hinterlegt die Server-Adresse und startet die
+App — **keine Gatekeeper-Warnung**, weil `curl` (anders als der Browser) die
+Datei nicht in Quarantäne stellt.
+
+**Manuell (Fallback):** ZIP laden → „Loco Moco" nach Programme. Kommt beim Start
+„Apple konnte nicht überprüfen…", einmal das Quarantäne-Flag entfernen:
+
+```bash
+xattr -dr com.apple.quarantine "/Applications/Loco Moco.app"
+```
+Danach öffnen und die **Server-Adresse** eingeben (z. B. `http://192.168.1.50:4577`).
+Gespeichert in `~/.loco-moco-client/server.txt`; Menü **Ablage → Server ändern…**.
 
 ### Weitere App später hinzufügen
 1. Neue Kachel in `portal/index.html` ergänzen (Name, Download-Link).

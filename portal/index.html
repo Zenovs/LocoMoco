@@ -40,12 +40,20 @@
     padding:12px 16px;border-radius:13px;font-size:15px;display:inline-block;
   }
   .btn:active{transform:translateY(1px)}
-  .addr{background:#f4f3ff;border:1px dashed #cfc9ff;border-radius:12px;padding:10px 12px;
-    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:14px;display:flex;
-    align-items:center;justify-content:space-between;gap:10px}
-  .addr code{font-weight:700}
-  .copy{appearance:none;border:1px solid #cfc9ff;background:#fff;border-radius:9px;cursor:pointer;
-    font-weight:700;padding:5px 10px;font-size:12px;color:var(--accent)}
+  .lead{margin:0;color:var(--muted);font-weight:600;font-size:13.5px}
+  .cmd{background:#1c1430;border-radius:12px;padding:12px 12px;display:flex;align-items:flex-start;
+    justify-content:space-between;gap:10px}
+  .cmd code{color:#ffd9ef;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;
+    line-height:1.5;word-break:break-all;white-space:pre-wrap}
+  .cmd.small{background:#f4f3ff;padding:8px 10px}
+  .cmd.small code{color:#5b3fb0;font-size:12px}
+  .copy{appearance:none;border:0;background:rgba(255,255,255,.16);color:#fff;border-radius:9px;cursor:pointer;
+    font-weight:700;padding:6px 10px;font-size:12px;flex:0 0 auto}
+  .cmd.small .copy{background:#e7e3ff;color:var(--accent)}
+  details{border-top:1px solid var(--line);padding-top:12px;margin-top:2px}
+  summary{cursor:pointer;color:var(--muted);font-weight:700;font-size:13.5px}
+  .btn.ghost{background:#f0eefc;color:var(--accent);margin:12px 0 0}
+  details code{background:#f4f3ff;border-radius:7px;padding:1px 6px;font-weight:700}
   ol{margin:4px 0 0;padding-left:20px;color:var(--muted);font-weight:600;font-size:13.5px;line-height:1.7}
   ol b{color:var(--ink)}
   .soon{opacity:.6}
@@ -74,19 +82,23 @@
         </div>
       </div>
 
-      <a class="btn" href="/downloads/Loco-Moco-Mac.zip" download>⬇︎ Mac-App herunterladen</a>
-
-      <div class="addr">
-        <span>Server-Adresse: <code id="srv">…</code></span>
-        <button class="copy" onclick="copySrv()">Kopieren</button>
+      <p class="lead">Schnell-Installation — im <b>Terminal</b> einfügen (installiert & startet automatisch, ganz ohne Sicherheitswarnung):</p>
+      <div class="cmd">
+        <code id="cmd">…</code>
+        <button class="copy" onclick="copyCmd()">Kopieren</button>
       </div>
 
-      <ol>
-        <li><b>ZIP</b> herunterladen & doppelklicken zum Entpacken.</li>
-        <li><b>„Loco Moco"</b> in den Ordner <b>Programme</b> ziehen.</li>
-        <li>Erster Start: <b>Rechtsklick → Öffnen</b> (einmalig wegen Gatekeeper).</li>
-        <li><b>Server-Adresse</b> oben eingeben — fertig.</li>
-      </ol>
+      <details>
+        <summary>Lieber manuell herunterladen</summary>
+        <a class="btn ghost" href="/downloads/Loco-Moco-Mac.zip" download>⬇︎ Mac-App (ZIP)</a>
+        <ol>
+          <li><b>ZIP</b> doppelklicken zum Entpacken, <b>„Loco Moco"</b> nach <b>Programme</b> ziehen.</li>
+          <li>Beim ersten Start kommt evtl. „Apple konnte nicht überprüfen…". Dann einmal im Terminal:
+            <div class="cmd small"><code id="xattr">…</code><button class="copy" onclick="copyXattr()">Kopieren</button></div>
+          </li>
+          <li>Öffnen, dann <b>Server-Adresse</b> eingeben: <code id="srv">…</code></li>
+        </ol>
+      </details>
     </div>
 
     <!-- Platzhalter für weitere App -->
@@ -107,14 +119,17 @@
 </div>
 
 <script>
-  // Server-Adresse aus dem aktuellen Host ableiten (App läuft auf Port 4577).
+  // Server-Adresse + Befehle aus dem aktuellen Host ableiten.
   var host = location.hostname || "localhost";
   var srv = "http://" + host + ":4577";
+  var cmd = "curl -fsSL http://" + host + "/downloads/install-client.sh | LOCO_HOST=" + host + " bash";
+  var xattr = "xattr -dr com.apple.quarantine \"/Applications/Loco Moco.app\"";
   document.getElementById("srv").textContent = srv;
-  function copySrv(){
-    navigator.clipboard && navigator.clipboard.writeText(srv);
-    var b=event.target; var t=b.textContent; b.textContent="✓ kopiert"; setTimeout(function(){b.textContent=t;},1200);
-  }
+  document.getElementById("cmd").textContent = cmd;
+  document.getElementById("xattr").textContent = xattr;
+  function flash(b){ var t=b.textContent; b.textContent="✓ kopiert"; setTimeout(function(){b.textContent=t;},1200); }
+  function copyCmd(){ navigator.clipboard && navigator.clipboard.writeText(cmd); flash(event.target); }
+  function copyXattr(){ navigator.clipboard && navigator.clipboard.writeText(xattr); flash(event.target); }
 </script>
 </body>
 </html>
