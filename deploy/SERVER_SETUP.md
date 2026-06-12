@@ -158,14 +158,19 @@ listet die Clients.
 
 ### Client bauen / aktualisieren (auf einem Mac)
 
-Der Mac-Client wird auf einem Mac kompiliert (Universal: Apple Silicon + Intel)
-und das ZIP ins Repo gelegt — der Server liefert es dann automatisch aus:
+Der Mac-Client wird auf einem Mac kompiliert (Universal: Apple Silicon + Intel).
+`build-client.sh` legt ZIP **und** `version.json` automatisch nach
+`deploy/downloads/` — der Server liefert beides aus, installierte Clients holen
+sich das Update beim Start von selbst (still im Hintergrund, Austausch beim Beenden).
 
 ```bash
-scripts/build-client.sh                       # erzeugt dist/Loco-Moco-Mac.zip
-cp dist/Loco-Moco-Mac.zip deploy/downloads/   # ins Repo übernehmen
-git add deploy/downloads/Loco-Moco-Mac.zip && git commit -m "Client-Update" && git push
+# Bei Änderungen am Client die Version hochzählen, damit das Auto-Update greift:
+LOCO_CLIENT_VERSION=3 scripts/build-client.sh   # (Standard ist 2)
+git add deploy/downloads scripts/assets && git commit -m "Client v3" && git push
 ```
+
+> Schon installierte **v1**-Clients (vor dem Auto-Update) müssen einmalig den
+> Installer-Einzeiler erneut laufen lassen; danach aktualisiert sich alles selbst.
 
 ### So installiert der Mitarbeitende (steht auch auf dem Portal)
 **Empfohlen — ein Terminal-Befehl** (das Portal zeigt ihn mit der richtigen IP):

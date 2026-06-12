@@ -87,8 +87,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
     var overlay: NSView!
     var server = ""
     var loadedReal = false
+    var didCheckUpdate = false
+    var pendingUpdateApp: String? = nil   // entpackte neue .app, wird beim Beenden eingespielt
 
     func applicationDidFinishLaunching(_ note: Notification) {
+        if moveToApplicationsIfNeeded() { return } // verschiebt & startet neu
         setupMenu()
 
         let frame = NSRect(x: 0, y: 0, width: 1180, height: 800)
@@ -135,6 +138,46 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         }
     }
 
+    // MARK: Nach „Programme" verschieben (beim manuellen Download aus dem ZIP)
+    // Läuft die App ausserhalb von /Applications, einmalig anbieten, sie dorthin
+    // zu verschieben — danach von dort neu starten. Wer den curl-Installer nutzt,
+    // ist schon in /Applications und sieht das nie.
+    func moveToApplicationsIfNeeded() -> Bool {
+        let path = Bundle.main.bundlePath
+        if path.hasPrefix("/Applications/") { return false }
+        // In einer schreibgeschützten DMG/temporären Stelle? Trotzdem anbieten.
+        let alert = NSAlert()
+        alert.messageText = "Loco Moco ins Programme-Verzeichnis verschieben?"
+        alert.informativeText = "So liegt die App am richtigen Ort und kann später automatisch aktualisiert werden."
+        alert.addButton(withTitle: "Verschieben")
+        alert.addButton(withTitle: "Nicht jetzt")
+        guard alert.runModal() == .alertFirstButtonReturn else { return false }
+
+        let target = "/Applications/Loco Moco.app"
+        let fm = FileManager.default
+        do {
+            try? fm.removeItem(atPath: target)
+            try fm.copyItem(atPath: path, toPath: target)
+        } catch {
+            showAlert("Verschieben fehlgeschlagen", error.localizedDescription)
+            return false
+        }
+        // Quarantäne entfernen, Original (wenn möglich) löschen, neue Instanz starten.
+        let pid = ProcessInfo.processInfo.processIdentifier
+        let script = """
+        while kill -0 \(pid) 2>/dev/null; do sleep 0.2; done
+        xattr -dr com.apple.quarantine "\(target)" 2>/dev/null || true
+        rm -rf "\(path)" 2>/dev/null || true
+        open "\(target)"
+        """
+        let p = Process()
+        p.executableURL = URL(fileURLWithPath: "/bin/bash")
+        p.arguments = ["-c", script]
+        try? p.run()
+        NSApp.terminate(nil)
+        return true
+    }
+
     // MARK: Server-Adresse
     func readServer() -> String? {
         guard let s = try? String(contentsOfFile: SERVER_FILE, encoding: .utf8) else { return nil }
@@ -178,6 +221,51 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         guard let url = URL(string: server) else { changeServer(initial: false); return }
         loadedReal = false
         webView.load(URLRequest(url: url))
+    }
+
+    // MARK: Stilles Auto-Update der Hülle
+    // Liest <host>/downloads/version.json (Portal, Port 80). Ist dort eine höhere
+    // Version veröffentlicht, wird das neue Paket im Hintergrund geladen und beim
+    // Beenden lautlos eingespielt. Der Server entscheidet, wann es so weit ist.
+    func currentVersion() -> Int {
+        Int((Bundle.main.infoDictionary?["CFBundleVersion"] as? String) ?? "1") ?? 1
+    }
+    func portalHost() -> String? { URL(string: server)?.host }
+
+    func checkForUpdate() {
+        guard let host = portalHost(),
+              let vurl = URL(string: "http://\(host)/downloads/version.json") else { return }
+        var req = URLRequest(url: vurl); req.timeoutInterval = 5
+        req.cachePolicy = .reloadIgnoringLocalCacheData
+        URLSession.shared.dataTask(with: req) { [weak self] data, _, _ in
+            guard let self = self, let data = data,
+                  let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return }
+            let latest = (obj["version"] as? Int) ?? Int("\(obj["version"] ?? "")") ?? 0
+            guard latest > self.currentVersion() else { return }
+            let rel = (obj["url"] as? String) ?? "/downloads/Loco-Moco-Mac.zip"
+            let zip = rel.hasPrefix("http") ? rel : "http://\(host)\(rel)"
+            self.downloadUpdate(zip)
+        }.resume()
+    }
+
+    func downloadUpdate(_ zipURL: String) {
+        guard let u = URL(string: zipURL) else { return }
+        URLSession.shared.downloadTask(with: u) { [weak self] tmp, _, _ in
+            guard let self = self, let tmp = tmp else { return }
+            let fm = FileManager.default
+            let stage = "\(CFG_DIR)/update"
+            try? fm.removeItem(atPath: stage)
+            try? fm.createDirectory(atPath: stage, withIntermediateDirectories: true)
+            let zipPath = "\(stage)/loco.zip"
+            do { try fm.moveItem(at: tmp, to: URL(fileURLWithPath: zipPath)) } catch { return }
+            let p = Process()
+            p.executableURL = URL(fileURLWithPath: "/usr/bin/ditto")
+            p.arguments = ["-x", "-k", zipPath, stage]
+            try? p.run(); p.waitUntilExit()
+            if let items = try? fm.contentsOfDirectory(atPath: stage) {
+                for it in items where it.hasSuffix(".app") { self.pendingUpdateApp = "\(stage)/\(it)" }
+            }
+        }.resume()
     }
 
     // MARK: Menü
@@ -276,7 +364,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
             NSAnimationContext.runAnimationGroup({ ctx in ctx.duration = 0.4; overlay.animator().alphaValue = 0 },
                                                  completionHandler: { self.overlay.isHidden = true })
         }
-        if wv.url?.absoluteString.hasPrefix(server) == true { loadedReal = true }
+        if wv.url?.absoluteString.hasPrefix(server) == true {
+            loadedReal = true
+            if !didCheckUpdate { didCheckUpdate = true; checkForUpdate() }
+        }
     }
     func webView(_ wv: WKWebView, didFail navigation: WKNavigation!, withError error: Error) { showError() }
     func webView(_ wv: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) { showError() }
@@ -286,6 +377,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ s: NSApplication) -> Bool { true }
+
+    // Beim Beenden: falls ein Update bereitliegt, lautlos einspielen. Ein
+    // losgelöstes bash wartet, bis dieser Prozess weg ist, und tauscht dann das
+    // Bundle aus (neue Version beim nächsten Öffnen aktiv).
+    func applicationWillTerminate(_ note: Notification) {
+        guard let newApp = pendingUpdateApp else { return }
+        let install = Bundle.main.bundlePath
+        let pid = ProcessInfo.processInfo.processIdentifier
+        let script = """
+        while kill -0 \(pid) 2>/dev/null; do sleep 0.3; done
+        rm -rf "\(install)"
+        /usr/bin/ditto "\(newApp)" "\(install)"
+        xattr -dr com.apple.quarantine "\(install)" 2>/dev/null || true
+        rm -rf "\(CFG_DIR)/update"
+        """
+        let p = Process()
+        p.executableURL = URL(fileURLWithPath: "/bin/bash")
+        p.arguments = ["-c", script]
+        try? p.run()
+    }
 }
 
 let app = NSApplication.shared

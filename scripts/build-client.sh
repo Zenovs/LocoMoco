@@ -9,11 +9,16 @@
 # (siehe deploy/SERVER_SETUP.md) — dann steht es am Portal zum Download.
 set -euo pipefail
 
+# Hüllen-Version. Bei jeder Änderung an LocoMocoClient.swift HOCHZÄHLEN — dann
+# holen sich installierte Clients das Update automatisch (via version.json).
+VERSION="${LOCO_CLIENT_VERSION:-2}"
+
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 SRC="$ROOT/scripts/LocoMocoClient.swift"
 DIST="$ROOT/dist"
 APP="$DIST/Loco Moco.app"
 ZIP="$DIST/Loco-Moco-Mac.zip"
+PUBLISH="$ROOT/deploy/downloads"   # was der Server ausliefert
 
 if ! command -v swiftc >/dev/null 2>&1; then
   echo "❌ swiftc fehlt — bitte Xcode Command Line Tools installieren: xcode-select --install" >&2
@@ -37,8 +42,17 @@ else
   swiftc -O -framework Cocoa -framework WebKit -o "$OUT" "$SRC"
 fi
 
-# 2) Info.plist — http:// zum LAN-Server erlauben (ATS) + lokales Netz
-cat > "$APP/Contents/Info.plist" <<'PLIST'
+# 2) App-Icon — falls noch nicht erzeugt, aus make-icon.swift generieren.
+ICON="$ROOT/scripts/assets/AppIcon.icns"
+if [ ! -f "$ICON" ]; then
+  echo "🎨 Erzeuge App-Icon…"
+  mkdir -p "$ROOT/scripts/assets"
+  swift "$ROOT/scripts/make-icon.swift" "$ICON" >/dev/null 2>&1 || echo "   (Icon-Erzeugung übersprungen)"
+fi
+[ -f "$ICON" ] && cp "$ICON" "$APP/Contents/Resources/AppIcon.icns"
+
+# 3) Info.plist — http:// zum LAN-Server erlauben (ATS) + lokales Netz + Icon
+cat > "$APP/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0"><dict>
@@ -46,9 +60,10 @@ cat > "$APP/Contents/Info.plist" <<'PLIST'
   <key>CFBundleDisplayName</key><string>Loco Moco</string>
   <key>CFBundleIdentifier</key><string>ch.wireon.locomoco.client</string>
   <key>CFBundleExecutable</key><string>LocoMoco</string>
+  <key>CFBundleIconFile</key><string>AppIcon</string>
   <key>CFBundlePackageType</key><string>APPL</string>
-  <key>CFBundleShortVersionString</key><string>1.0</string>
-  <key>CFBundleVersion</key><string>1</string>
+  <key>CFBundleShortVersionString</key><string>1.${VERSION}</string>
+  <key>CFBundleVersion</key><string>${VERSION}</string>
   <key>LSMinimumSystemVersion</key><string>12.0</string>
   <key>NSHighResolutionCapable</key><true/>
   <key>LSApplicationCategoryType</key><string>public.app-category.productivity</string>
@@ -61,13 +76,23 @@ cat > "$APP/Contents/Info.plist" <<'PLIST'
 </dict></plist>
 PLIST
 
-# 3) Ad-hoc signieren (sonst löscht Gatekeeper die App teils sofort)
+# 4) Ad-hoc signieren (sonst löscht Gatekeeper die App teils sofort)
 codesign --force --deep -s - "$APP" >/dev/null 2>&1 || true
 
-# 4) Zippen (ditto erhält Bundle-Struktur & Rechte)
+# 5) Zippen (ditto erhält Bundle-Struktur & Rechte)
 cd "$DIST"
 ditto -c -k --sequesterRsrc --keepParent "Loco Moco.app" "$ZIP"
 
-echo "✅ Fertig:"
-echo "   App:  $APP"
-echo "   ZIP:  $ZIP"
+# 6) Ins Repo publizieren: ZIP + version.json (Server liefert deploy/downloads aus).
+#    Beim Deploy gespiegelt nach /opt/locomoco/downloads -> Clients sehen das Update.
+mkdir -p "$PUBLISH"
+cp -f "$ZIP" "$PUBLISH/Loco-Moco-Mac.zip"
+cat > "$PUBLISH/version.json" <<JSON
+{ "version": ${VERSION}, "url": "/downloads/Loco-Moco-Mac.zip" }
+JSON
+
+echo "✅ Fertig (v${VERSION}):"
+echo "   App:      $APP"
+echo "   ZIP:      $ZIP"
+echo "   Publish:  $PUBLISH/Loco-Moco-Mac.zip + version.json"
+echo "   → committen & pushen, dann ziehen sich Clients das Update automatisch."
