@@ -8,6 +8,10 @@ PNPM="${LOCO_PNPM:-corepack pnpm}"
 
 cd "$APP_DIR"
 
+# Git-Sicherheitscheck "dubious ownership" entschärfen — sonst bricht der Deploy
+# ab, wenn der ausführende User nicht exakt der Verzeichnis-Besitzer ist.
+git config --global --add safe.directory "$APP_DIR" 2>/dev/null || true
+
 echo "[deploy] git pull …"
 git fetch --all --prune
 git reset --hard origin/main   # Server folgt strikt origin/main
