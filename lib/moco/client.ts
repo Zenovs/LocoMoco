@@ -6,6 +6,7 @@ import type {
   MocoOffer,
   MocoProject,
   MocoProjectReport,
+  MocoSchedule,
   MocoUser,
 } from "@/types/moco";
 import { cachedFetch } from "./cache";
@@ -154,6 +155,22 @@ export async function getInvoices(
       date_from: dateFrom,
       date_to: dateTo,
     })
+  );
+}
+
+// Abwesenheiten (Ferien/Krankheit/Feiertag). Defensiv: liefert [] statt zu
+// werfen, falls das Modul nicht zugänglich ist (403) — der Rest läuft weiter.
+export async function getSchedules(
+  config: MocoConfig,
+  from: string,
+  to: string,
+  userId?: number
+): Promise<MocoSchedule[]> {
+  const key = `schedules:${config.subdomain}:${from}:${to}:${userId ?? "all"}`;
+  const params: Record<string, string> = { from, to };
+  if (userId) params.user_id = String(userId);
+  return cachedFetch(key, () =>
+    fetchAllPages<MocoSchedule>(`${baseUrl(config.subdomain)}/schedules`, config.apiKey, params).catch(() => [])
   );
 }
 

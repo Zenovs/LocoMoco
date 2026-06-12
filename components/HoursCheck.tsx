@@ -98,11 +98,18 @@ export default function HoursCheck({ check, userName }: Props) {
         </div>
       </div>
 
+      {check.absenceHours > 0 && (
+        <p style={{ fontSize: 13, fontWeight: 700, color: "#0a7c3e", background: "#effaf3", border: "1.5px solid #bfead2", borderRadius: 12, padding: "8px 12px", marginBottom: check.missingDays.length ? 14 : 0 }}>
+          🏖️ {check.absenceDays} Tag{check.absenceDays === 1 ? "" : "e"} Ferien/Krankheit berücksichtigt
+          <span style={{ fontWeight: 600, color: "var(--plum-soft)" }}> — {check.absenceHours} h Soll dafür abgezogen, diese Tage zählen nicht als „vergessen".</span>
+        </p>
+      )}
+
       {check.missingDays.length > 0 && (
         <div>
           <p style={{ fontSize: 13, fontWeight: 700, color: "var(--plum)", marginBottom: 8 }}>
             🗓️ {check.missingDays.length} Arbeitstag{check.missingDays.length === 1 ? "" : "e"} ohne Erfassung
-            <span style={{ fontWeight: 600, color: "var(--plum-soft)" }}> — vergessen, Ferien oder frei?</span>
+            <span style={{ fontWeight: 600, color: "var(--plum-soft)" }}> — keine Ferien/Krankheit hinterlegt, also vermutlich vergessen.</span>
           </p>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
             {check.missingDays.map((d) => (

@@ -79,6 +79,24 @@ export interface MocoProjectReport {
   }>;
 }
 
+// Abwesenheiten (MOCO „Abwesenheiten"/Schedules): Ferien, Krankheit, Feiertag …
+// am/pm geben an, ob Vor-/Nachmittag betroffen sind (beide = ganzer Tag).
+export interface MocoSchedule {
+  id: number;
+  date: string; // YYYY-MM-DD
+  am?: boolean;
+  pm?: boolean;
+  user?: { id: number };
+  user_id?: number;
+  assignment?: { id: number; name?: string }; // Abwesenheitsart (z. B. "Ferien", "Krankheit")
+  absence_code?: number;
+  symbol?: number;
+  comment?: string;
+}
+export function scheduleUserId(s: MocoSchedule): number | undefined {
+  return s.user?.id ?? s.user_id;
+}
+
 // Rechnungen (MOCO-Modul). Felder defensiv optional — je nach Account/Version.
 export interface MocoInvoice {
   id: number;

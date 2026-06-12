@@ -3,6 +3,7 @@ import { readConfig } from "@/lib/config";
 import {
   getActivities,
   getEmployments,
+  getSchedules,
   getUsers,
 } from "@/lib/moco/client";
 import { calcProductivity } from "@/lib/metrics/productivity";
@@ -39,12 +40,13 @@ export async function GET(req: NextRequest) {
     // weniger Daten und damit ein viel schnellerer Erstabruf. Nur der laufende
     // und der Vormonat (für die Veränderung) werden geholt — keine Historie.
     // "Über Budget" (teure Projekt-Reports) lädt separat via /api/overbudget.
-    const [users, employments, activities, prevActivities] =
+    const [users, employments, activities, prevActivities, schedules] =
       await Promise.all([
         getUsers(config),
         getEmployments(config),
         getActivities(config, from, to, userId),
         getActivities(config, prevFrom, prevTo, userId),
+        getSchedules(config, from, to, userId), // Ferien/Krankheit
       ]);
 
     // --- Metric 1: Productivity ---
@@ -72,7 +74,7 @@ export async function GET(req: NextRequest) {
     const timeWasters = calcTimeWasters(activities, userId);
 
     // Erfassungs-Check: Soll bis heute vs. erfasst + vergessene Tage
-    const hoursCheck = calcHoursCheck(activities, employments, userId, year, month);
+    const hoursCheck = calcHoursCheck(activities, employments, userId, year, month, new Date(), schedules);
 
     // "Über Budget" (/api/overbudget) und Schläferprojekte (/api/sleeping) laden
     // separat — beides braucht teure Projekt-Reports und ist nicht im kritischen
