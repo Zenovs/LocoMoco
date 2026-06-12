@@ -98,7 +98,7 @@ PL
 
   # Modell holen — gross (~5 GB), daher im Hintergrund. Loco-Chat zeigt bis
   # dahin "Modell lädt".
-  if ! "$OB" list 2>/dev/null | grep -q "${LOCO_MODEL%%:*}"; then
+  if ! "$OB" list 2>/dev/null | grep -qF "$LOCO_MODEL"; then
     echo "    ⬇︎  Lade KI-Modell $LOCO_MODEL (~5 GB, einmalig) im Hintergrund…"
     ( OLLAMA_ORIGINS="*" "$OB" pull "$LOCO_MODEL" > /tmp/locomoco-ollama-pull.log 2>&1 & )
   fi
