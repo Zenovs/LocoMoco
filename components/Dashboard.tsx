@@ -18,6 +18,7 @@ import LoadingScreen from "./LoadingScreen";
 import CoachPanel from "./CoachPanel";
 import HoursCheck from "./HoursCheck";
 import CompanySection from "./CompanySection";
+import LocoChat from "./LocoChat";
 
 interface DashboardData {
   users: MocoUser[];
@@ -369,6 +370,13 @@ export default function Dashboard() {
         {error && (
           <div className="card mb-6" style={{ color: "#c0145a", fontWeight: 600 }}>
             {error}
+          </div>
+        )}
+
+        {/* Loco-Chat (lokale KI) */}
+        {showCard("chat") && (
+          <div style={{ marginBottom: 22 }}>
+            <LocoChat defaultYear={year} defaultMonth={month} />
           </div>
         )}
 

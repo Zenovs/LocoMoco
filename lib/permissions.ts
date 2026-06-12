@@ -39,6 +39,8 @@ export const CARDS = [
   // Sensible Karten (brauchen zusätzlich die jeweilige Lese-Freigabe)
   { key: "hr.wirtschaftlichkeit", label: "Wirtschaftlichkeit pro Mitarbeiter (Lohn)" },
   { key: "gl.liquiditaet", label: "Liquidität" },
+  // KI-Chat (lokales LLM auf dem Gerät)
+  { key: "chat", label: "Loco-Chat (lokale KI)" },
 ] as const;
 
 export const ALL_CAPABILITIES: string[] = CAPABILITIES.map((c) => c.key);
