@@ -8,7 +8,7 @@ import type {
   MocoProjectReport,
   MocoUser,
 } from "@/types/moco";
-import { cacheGet, cacheSet } from "./cache";
+import { cachedFetch } from "./cache";
 import { throttledFetch } from "./throttle";
 
 function baseUrl(subdomain: string) {
@@ -88,31 +88,17 @@ function buildUrl(base: string, params: Record<string, string>): string {
 }
 
 export async function getUsers(config: MocoConfig): Promise<MocoUser[]> {
-  const key = `users:${config.subdomain}`;
-  const cached = cacheGet<MocoUser[]>(key);
-  if (cached) return cached;
-
-  const data = await fetchAllPages<MocoUser>(
-    `${baseUrl(config.subdomain)}/users`,
-    config.apiKey
+  return cachedFetch(`users:${config.subdomain}`, () =>
+    fetchAllPages<MocoUser>(`${baseUrl(config.subdomain)}/users`, config.apiKey)
   );
-  cacheSet(key, data);
-  return data;
 }
 
 export async function getEmployments(
   config: MocoConfig
 ): Promise<MocoEmployment[]> {
-  const key = `employments:${config.subdomain}`;
-  const cached = cacheGet<MocoEmployment[]>(key);
-  if (cached) return cached;
-
-  const data = await fetchAllPages<MocoEmployment>(
-    `${baseUrl(config.subdomain)}/users/employments`,
-    config.apiKey
+  return cachedFetch(`employments:${config.subdomain}`, () =>
+    fetchAllPages<MocoEmployment>(`${baseUrl(config.subdomain)}/users/employments`, config.apiKey)
   );
-  cacheSet(key, data);
-  return data;
 }
 
 export async function getActivities(
@@ -122,34 +108,19 @@ export async function getActivities(
   userId?: number // optional serverseitig filtern -> viel weniger Daten
 ): Promise<MocoActivity[]> {
   const key = `activities:${config.subdomain}:${from}:${to}:${userId ?? "all"}`;
-  const cached = cacheGet<MocoActivity[]>(key);
-  if (cached) return cached;
-
   const params: Record<string, string> = { from, to };
   if (userId) params.user_id = String(userId);
-
-  const data = await fetchAllPages<MocoActivity>(
-    `${baseUrl(config.subdomain)}/activities`,
-    config.apiKey,
-    params
+  return cachedFetch(key, () =>
+    fetchAllPages<MocoActivity>(`${baseUrl(config.subdomain)}/activities`, config.apiKey, params)
   );
-  cacheSet(key, data);
-  return data;
 }
 
 export async function getProjects(
   config: MocoConfig
 ): Promise<MocoProject[]> {
-  const key = `projects:${config.subdomain}`;
-  const cached = cacheGet<MocoProject[]>(key);
-  if (cached) return cached;
-
-  const data = await fetchAllPages<MocoProject>(
-    `${baseUrl(config.subdomain)}/projects`,
-    config.apiKey
+  return cachedFetch(`projects:${config.subdomain}`, () =>
+    fetchAllPages<MocoProject>(`${baseUrl(config.subdomain)}/projects`, config.apiKey)
   );
-  cacheSet(key, data);
-  return data;
 }
 
 export async function getProjectReport(
@@ -157,20 +128,17 @@ export async function getProjectReport(
   projectId: number
 ): Promise<MocoProjectReport> {
   const key = `project-report:${config.subdomain}:${projectId}`;
-  const cached = cacheGet<MocoProjectReport>(key);
-  if (cached) return cached;
-
-  const res = await throttledFetch(
-    `${baseUrl(config.subdomain)}/projects/${projectId}/report`,
-    { headers: headers(config.apiKey) }
-  );
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`MOCO API ${res.status}: ${text}`);
-  }
-  const data = (await res.json()) as MocoProjectReport;
-  cacheSet(key, data);
-  return data;
+  return cachedFetch(key, async () => {
+    const res = await throttledFetch(
+      `${baseUrl(config.subdomain)}/projects/${projectId}/report`,
+      { headers: headers(config.apiKey) }
+    );
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`MOCO API ${res.status}: ${text}`);
+    }
+    return (await res.json()) as MocoProjectReport;
+  });
 }
 
 // Rechnungen. MOCO unterstützt Datumsfilter (date_from/date_to). Wir holen
@@ -181,30 +149,19 @@ export async function getInvoices(
   dateTo: string
 ): Promise<MocoInvoice[]> {
   const key = `invoices:${config.subdomain}:${dateFrom}:${dateTo}`;
-  const cached = cacheGet<MocoInvoice[]>(key);
-  if (cached) return cached;
-
-  const data = await fetchAllPages<MocoInvoice>(
-    `${baseUrl(config.subdomain)}/invoices`,
-    config.apiKey,
-    { date_from: dateFrom, date_to: dateTo }
+  return cachedFetch(key, () =>
+    fetchAllPages<MocoInvoice>(`${baseUrl(config.subdomain)}/invoices`, config.apiKey, {
+      date_from: dateFrom,
+      date_to: dateTo,
+    })
   );
-  cacheSet(key, data);
-  return data;
 }
 
 // Offerten.
 export async function getOffers(config: MocoConfig): Promise<MocoOffer[]> {
-  const key = `offers:${config.subdomain}`;
-  const cached = cacheGet<MocoOffer[]>(key);
-  if (cached) return cached;
-
-  const data = await fetchAllPages<MocoOffer>(
-    `${baseUrl(config.subdomain)}/offers`,
-    config.apiKey
+  return cachedFetch(`offers:${config.subdomain}`, () =>
+    fetchAllPages<MocoOffer>(`${baseUrl(config.subdomain)}/offers`, config.apiKey)
   );
-  cacheSet(key, data);
-  return data;
 }
 
 export async function testConnection(config: MocoConfig): Promise<void> {

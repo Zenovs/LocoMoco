@@ -58,6 +58,36 @@ export function cacheSet<T>(key: string, data: T, ttlMs = TTL_MS): void {
   }
 }
 
+// In-Flight-Dedup: Laufen mehrere identische Abrufe gleichzeitig (z. B. /company
+// und /wirtschaftlichkeit holen dieselben Firmen-Aktivitäten), teilen sie sich
+// EINEN Fetch statt den Server doppelt zu belasten. Verhindert Lastspitzen, die
+// die nächste Navigation in einen Timeout laufen lassen.
+const inflight = new Map<string, Promise<unknown>>();
+
+export async function cachedFetch<T>(
+  key: string,
+  fetcher: () => Promise<T>,
+  ttlMs?: number
+): Promise<T> {
+  const cached = cacheGet<T>(key);
+  if (cached !== null) return cached;
+
+  const existing = inflight.get(key) as Promise<T> | undefined;
+  if (existing) return existing;
+
+  const promise = (async () => {
+    try {
+      const data = await fetcher();
+      cacheSet(key, data, ttlMs);
+      return data;
+    } finally {
+      inflight.delete(key);
+    }
+  })();
+  inflight.set(key, promise);
+  return promise;
+}
+
 export function cacheDelete(key: string): void {
   store.delete(key);
   try {
@@ -70,6 +100,7 @@ export function cacheDelete(key: string): void {
 // Leert den gesamten Cache (Memory + Disk) — für den "Aktualisieren"-Button.
 export function cacheClearAll(): void {
   store.clear();
+  inflight.clear();
   try {
     fs.rmSync(CACHE_DIR, { recursive: true, force: true });
   } catch {
