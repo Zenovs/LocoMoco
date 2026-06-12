@@ -15,5 +15,8 @@ jobs:
       group: locomoco-deploy
       cancel-in-progress: true
     steps:
+      # Die mitversionierte deploy.sh aus dem Repo ausführen (sie macht selbst
+      # git reset/build/restart). So sind Deploy-Änderungen immer aktuell, ohne
+      # dass man /opt/locomoco/deploy.sh manuell nachkopieren muss.
       - name: Deploy auf den internen Server
-        run: /opt/locomoco/deploy.sh
+        run: bash /opt/locomoco/app/deploy/deploy.sh
