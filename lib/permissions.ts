@@ -7,8 +7,10 @@ export const CAPABILITIES = [
   { key: "roles.manage", label: "Rollen & Freigaben verwalten" },
   { key: "config.manage", label: "MOCO-Verbindung verwalten" },
   { key: "data.all", label: "Alle Mitarbeiter sehen (sonst nur eigene)" },
-  { key: "data.salary", label: "Löhne sehen (später)" },
-  { key: "data.liquidity", label: "Liquidität sehen (später)" },
+  { key: "salary.manage", label: "Löhne erfassen & freigeben" },
+  { key: "data.salary", label: "Löhne / Wirtschaftlichkeit sehen" },
+  { key: "liquidity.manage", label: "Liquidität erfassen & freigeben" },
+  { key: "data.liquidity", label: "Liquidität sehen" },
 ] as const;
 
 export const CARDS = [
@@ -34,6 +36,9 @@ export const CARDS = [
   { key: "hr.rangliste", label: "Team-Rangliste" },
   { key: "kd.wirtschaft", label: "Kunden-Wirtschaftlichkeit" },
   { key: "kd.rangliste", label: "Kunden-Ranglisten" },
+  // Sensible Karten (brauchen zusätzlich die jeweilige Lese-Freigabe)
+  { key: "hr.wirtschaftlichkeit", label: "Wirtschaftlichkeit pro Mitarbeiter (Lohn)" },
+  { key: "gl.liquiditaet", label: "Liquidität" },
 ] as const;
 
 export const ALL_CAPABILITIES: string[] = CAPABILITIES.map((c) => c.key);

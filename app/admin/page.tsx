@@ -24,8 +24,10 @@ const input: React.CSSProperties = {
 };
 const labelS: React.CSSProperties = { fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".04em", color: "var(--plum-soft)" };
 
+type Tab = "users" | "roles" | "conn" | "rates" | "salaries" | "liquidity";
+
 export default function AdminPage() {
-  const [tab, setTab] = useState<"users" | "roles" | "conn" | "rates">("users");
+  const [tab, setTab] = useState<Tab>("users");
   const [denied, setDenied] = useState(false);
   const [roles, setRoles] = useState<Role[]>([]);
   const [caps, setCaps] = useState<Cap[]>([]);
@@ -34,6 +36,15 @@ export default function AdminPage() {
   const [moco, setMoco] = useState<MocoPerson[]>([]);
   const [msg, setMsg] = useState("");
   const [expandedUser, setExpandedUser] = useState<string | null>(null);
+
+  // Eigene Freigaben -> welche Tabs sichtbar sind.
+  const [myCaps, setMyCaps] = useState<string[]>([]);
+  const can = (c: string) => myCaps.includes(c);
+  const canUsers = can("users.manage");
+  const canRoles = can("roles.manage");
+  const canConfig = can("config.manage");
+  const canSalary = can("salary.manage");
+  const canLiquidity = can("liquidity.manage");
 
   // ----- MOCO-Verbindung -----
   const [conn, setConn] = useState({ url: "", username: "", apiKey: "" });
@@ -76,20 +87,76 @@ export default function AdminPage() {
     if (d.rates) setRates(d.rates); flash("Kostensatz gespeichert");
   }
 
+  // ----- Löhne (sensibel; salary.manage) -----
+  type SalaryRec = { grossMonthly: number; factor: number; sellRate: number; released: boolean; vollkosten?: number };
+  const [salaries, setSalaries] = useState<Record<string, SalaryRec>>({});
+  async function loadSalaries() {
+    const d = await fetch("/api/admin/salaries").then((r) => r.json()).catch(() => ({}));
+    if (d.salaries) setSalaries(d.salaries);
+  }
+  async function saveSalary(userId: number, patch: Partial<SalaryRec>) {
+    const res = await fetch("/api/admin/salaries", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId, ...patch }) });
+    const d = await res.json(); if (!res.ok) return flash(d.error ?? "Fehler");
+    if (d.salaries) setSalaries(d.salaries); flash("Lohn gespeichert");
+  }
+
+  // ----- Liquidität (sensibel; liquidity.manage) -----
+  type LiqMonth = { balance: number; income: number; expense: number; note?: string };
+  const [liq, setLiq] = useState<{ released: boolean; months: Record<string, LiqMonth> }>({ released: false, months: {} });
+  const [newLiqMonth, setNewLiqMonth] = useState("");
+  async function loadLiquidity() {
+    const d = await fetch("/api/admin/liquidity").then((r) => r.json()).catch(() => null);
+    if (d && d.months) setLiq({ released: !!d.released, months: d.months });
+  }
+  async function saveLiqMonth(month: string, patch: Partial<LiqMonth> | { delete: true }) {
+    const res = await fetch("/api/admin/liquidity", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ month, ...patch }) });
+    const d = await res.json(); if (!res.ok) return flash(d.error ?? "Fehler");
+    if (d.months) setLiq({ released: !!d.released, months: d.months }); flash("Gespeichert");
+  }
+  async function toggleLiqReleased(released: boolean) {
+    const res = await fetch("/api/admin/liquidity", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ released }) });
+    const d = await res.json(); if (!res.ok) return flash(d.error ?? "Fehler");
+    if (d.months) setLiq({ released: !!d.released, months: d.months });
+  }
+
   const cardKeys = cards.map((c) => c.key);
   const roleOf = (u: PublicUser) => roles.find((r) => r.key === u.role);
   const effCards = (u: PublicUser) => u.allowedCards ?? (roleOf(u)?.builtin ? cardKeys : []);
   const hasOverride = (u: PublicUser) => u.allowedCards != null;
 
   const load = useCallback(async () => {
-    const r = await fetch("/api/admin/roles");
-    if (r.status === 403 || r.status === 401) { setDenied(true); return; }
-    const rd = await r.json();
-    setRoles(rd.roles); setCaps(rd.capabilities); setCards(rd.cards);
-    const ud = await (await fetch("/api/admin/users")).json();
-    setUsers(ud.users ?? []);
-    const md = await (await fetch("/api/admin/moco-users")).json().catch(() => ({ users: [] }));
-    setMoco(md.users ?? []);
+    // Eigene Freigaben holen — bestimmt sichtbare Tabs.
+    const me = await fetch("/api/auth/me").then((r) => r.json()).catch(() => ({}));
+    const mc: string[] = me.capabilities ?? [];
+    const authOff = me.authEnabled === false;
+    setMyCaps(authOff ? ["users.manage", "roles.manage", "config.manage", "salary.manage", "liquidity.manage"] : mc);
+    const may = (c: string) => authOff || mc.includes(c);
+
+    // Rollen/Karten-Listen (für Tabs Benutzer/Rollen). Tolerant bei 403.
+    if (may("users.manage") || may("roles.manage")) {
+      const r = await fetch("/api/admin/roles");
+      if (r.ok) { const rd = await r.json(); setRoles(rd.roles); setCaps(rd.capabilities); setCards(rd.cards); }
+    }
+    if (may("users.manage")) {
+      const ud = await (await fetch("/api/admin/users")).json().catch(() => ({ users: [] }));
+      setUsers(ud.users ?? []);
+    }
+    if (may("users.manage") || may("salary.manage") || may("config.manage")) {
+      const md = await (await fetch("/api/admin/moco-users")).json().catch(() => ({ users: [] }));
+      setMoco(md.users ?? []);
+    }
+    if (may("salary.manage")) loadSalaries();
+    if (may("liquidity.manage")) loadLiquidity();
+
+    // Starttab auf den ersten erlaubten setzen; gar nichts erlaubt -> denied.
+    const order: [boolean, Tab][] = [
+      [may("users.manage"), "users"], [may("roles.manage"), "roles"],
+      [may("config.manage"), "conn"], [may("config.manage"), "rates"],
+      [may("salary.manage"), "salaries"], [may("liquidity.manage"), "liquidity"],
+    ];
+    const first = order.find(([ok]) => ok);
+    if (!first) { setDenied(true); return; }
+    setTab(first[1]);
   }, []);
   useEffect(() => { load(); }, [load]);
 
@@ -149,11 +216,13 @@ export default function AdminPage() {
       <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 22, flexWrap: "wrap" }}>
         <h1 style={{ fontFamily: "var(--font-display)", fontSize: 34, background: "var(--holo)", backgroundSize: "220% 220%", WebkitBackgroundClip: "text", backgroundClip: "text", color: "transparent" }}>Benutzerverwaltung</h1>
         <a href="/" className="chip" style={{ textDecoration: "none" }}>← Dashboard</a>
-        <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
-          <button className={`chip ${tab === "users" ? "active" : ""}`} onClick={() => setTab("users")}>👤 Benutzer</button>
-          <button className={`chip ${tab === "roles" ? "active" : ""}`} onClick={() => setTab("roles")}>🛡️ Rollen</button>
-          <button className={`chip ${tab === "conn" ? "active" : ""}`} onClick={() => setTab("conn")}>🔌 Verbindung</button>
-          <button className={`chip ${tab === "rates" ? "active" : ""}`} onClick={() => setTab("rates")}>💸 Kostensätze</button>
+        <div style={{ marginLeft: "auto", display: "flex", gap: 8, flexWrap: "wrap" }}>
+          {canUsers && <button className={`chip ${tab === "users" ? "active" : ""}`} onClick={() => setTab("users")}>👤 Benutzer</button>}
+          {canRoles && <button className={`chip ${tab === "roles" ? "active" : ""}`} onClick={() => setTab("roles")}>🛡️ Rollen</button>}
+          {canConfig && <button className={`chip ${tab === "conn" ? "active" : ""}`} onClick={() => setTab("conn")}>🔌 Verbindung</button>}
+          {canConfig && <button className={`chip ${tab === "rates" ? "active" : ""}`} onClick={() => setTab("rates")}>💸 Kostensätze</button>}
+          {canSalary && <button className={`chip ${tab === "salaries" ? "active" : ""}`} onClick={() => setTab("salaries")}>💰 Löhne</button>}
+          {canLiquidity && <button className={`chip ${tab === "liquidity" ? "active" : ""}`} onClick={() => setTab("liquidity")}>💧 Liquidität</button>}
         </div>
       </div>
       {msg && <div className="card" style={{ marginBottom: 16, fontWeight: 700, color: "var(--hotpink)" }}>{msg}</div>}
@@ -335,6 +404,114 @@ export default function AdminPage() {
                 />
               </div>
             ))}
+          </div>
+        </section>
+      )}
+
+      {tab === "salaries" && (
+        <section className="card">
+          <h2 style={{ fontSize: 17, color: "var(--plum)", marginBottom: 4 }}>💰 Löhne &amp; Wirtschaftlichkeit</h2>
+          <p style={{ fontSize: 13, color: "var(--plum-soft)", fontWeight: 600, marginBottom: 16 }}>
+            Sensibel — nur hier sichtbar. <b>Vollkosten = Bruttolohn × Faktor.</b> „Freigeben" macht die
+            Wirtschaftlichkeit (Kosten/Umsatz, nicht den Rohlohn) für Berechtigte sichtbar. Beim Verlassen eines Felds gespeichert.
+          </p>
+          {moco.length === 0 && <p style={{ fontSize: 13, color: "var(--plum-soft)", fontWeight: 600 }}>Keine MOCO-Personen geladen (Verbindung prüfen).</p>}
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13.5 }}>
+              <thead>
+                <tr>
+                  {["Mitarbeiter", "Bruttolohn/Mt.", "Faktor", "Vollkosten/Mt.", "Verkaufssatz CHF/h", "Freigegeben"].map((h, i) => (
+                    <th key={i} style={{ textAlign: i === 0 ? "left" : "right", padding: "7px 8px", fontSize: 11, fontWeight: 800, textTransform: "uppercase", color: "var(--plum-soft)", borderBottom: "1.5px solid var(--chip-border)" }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {moco.map((m) => {
+                  const s = salaries[String(m.id)];
+                  const vk = s ? Math.round((s.grossMonthly || 0) * (s.factor || 1)) : 0;
+                  return (
+                    <tr key={m.id}>
+                      <td style={{ padding: "8px 8px", fontWeight: 700, color: "var(--plum)" }}>{m.name}</td>
+                      <td style={{ padding: "8px 8px", textAlign: "right" }}>
+                        <input style={{ ...input, maxWidth: 110, textAlign: "right" }} type="number" min={0} step={100}
+                          defaultValue={s?.grossMonthly || ""} placeholder="—"
+                          onBlur={(e) => { const v = e.target.value.trim(); if (v !== "" || s) saveSalary(m.id, { grossMonthly: Number(v || 0) }); }} />
+                      </td>
+                      <td style={{ padding: "8px 8px", textAlign: "right" }}>
+                        <input style={{ ...input, maxWidth: 70, textAlign: "right" }} type="number" min={1} step={0.05}
+                          defaultValue={s?.factor ?? 1.2}
+                          onBlur={(e) => { const v = e.target.value.trim(); saveSalary(m.id, { factor: Number(v || 1.2) }); }} />
+                      </td>
+                      <td style={{ padding: "8px 8px", textAlign: "right", fontWeight: 800, color: "var(--plum)" }}>{vk ? vk.toLocaleString("de-CH") : "—"}</td>
+                      <td style={{ padding: "8px 8px", textAlign: "right" }}>
+                        <input style={{ ...input, maxWidth: 90, textAlign: "right" }} type="number" min={0} step={5}
+                          defaultValue={s?.sellRate || ""} placeholder="—"
+                          onBlur={(e) => { const v = e.target.value.trim(); if (v !== "" || s) saveSalary(m.id, { sellRate: Number(v || 0) }); }} />
+                      </td>
+                      <td style={{ padding: "8px 8px", textAlign: "right" }}>
+                        <button className={`chip ${s?.released ? "active" : ""}`} style={{ padding: "4px 10px" }}
+                          onClick={() => saveSalary(m.id, { released: !(s?.released) })}>
+                          {s?.released ? "✓ frei" : "gesperrt"}
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
+
+      {tab === "liquidity" && (
+        <section className="card" style={{ maxWidth: 760 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8, flexWrap: "wrap" }}>
+            <h2 style={{ fontSize: 17, color: "var(--plum)" }}>💧 Liquidität</h2>
+            <button className={`chip ${liq.released ? "active" : ""}`} style={{ marginLeft: "auto" }}
+              onClick={() => toggleLiqReleased(!liq.released)}>
+              {liq.released ? "✓ freigegeben" : "freigeben"}
+            </button>
+          </div>
+          <p style={{ fontSize: 13, color: "var(--plum-soft)", fontWeight: 600, marginBottom: 16 }}>
+            Monatswerte erfassen. „Freigeben" macht die Tabelle für Berechtigte (Liquidität sehen) sichtbar.
+          </p>
+          <div style={{ display: "flex", gap: 8, alignItems: "flex-end", marginBottom: 14 }}>
+            <Field label="Monat hinzufügen">
+              <input style={{ ...input, maxWidth: 160 }} type="month" value={newLiqMonth} onChange={(e) => setNewLiqMonth(e.target.value)} />
+            </Field>
+            <button className="chip active" style={{ height: 38 }} onClick={() => { if (newLiqMonth) { saveLiqMonth(newLiqMonth, { balance: 0, income: 0, expense: 0 }); setNewLiqMonth(""); } }}>+ Anlegen</button>
+          </div>
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13.5 }}>
+              <thead>
+                <tr>
+                  {["Monat", "Kontostand", "Einnahmen", "Ausgaben", ""].map((h, i) => (
+                    <th key={i} style={{ textAlign: i === 0 ? "left" : "right", padding: "7px 8px", fontSize: 11, fontWeight: 800, textTransform: "uppercase", color: "var(--plum-soft)", borderBottom: "1.5px solid var(--chip-border)" }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {Object.keys(liq.months).sort().reverse().map((mk) => {
+                  const v = liq.months[mk];
+                  const numField = (field: "balance" | "income" | "expense") => (
+                    <input style={{ ...input, maxWidth: 120, textAlign: "right" }} type="number" step={100}
+                      defaultValue={v[field] || 0}
+                      onBlur={(e) => saveLiqMonth(mk, { [field]: Number(e.target.value || 0) })} />
+                  );
+                  return (
+                    <tr key={mk}>
+                      <td style={{ padding: "8px 8px", fontWeight: 700, color: "var(--plum)" }}>{mk}</td>
+                      <td style={{ padding: "8px 8px", textAlign: "right" }}>{numField("balance")}</td>
+                      <td style={{ padding: "8px 8px", textAlign: "right" }}>{numField("income")}</td>
+                      <td style={{ padding: "8px 8px", textAlign: "right" }}>{numField("expense")}</td>
+                      <td style={{ padding: "8px 8px", textAlign: "right" }}>
+                        <button className="chip" style={{ padding: "3px 9px", color: "#c0145a" }} onClick={() => { if (confirm("Monat löschen?")) saveLiqMonth(mk, { delete: true }); }}>🗑</button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         </section>
       )}

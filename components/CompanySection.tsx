@@ -8,10 +8,12 @@ import type {
   CustomerEcon,
 } from "@/lib/metrics/company";
 import type { FinanceReport, MarginRow } from "@/lib/metrics/finance";
+import type { PersonEconomics } from "@/lib/metrics/economics";
 
 const h = (n: number) => `${n.toLocaleString("de-CH", { maximumFractionDigits: 1 })} h`;
 const p = (n: number) => `${n} %`;
 const chf = (n: number) => `${n.toLocaleString("de-CH", { maximumFractionDigits: 0 })} CHF`;
+const chfSigned = (n: number) => `${n >= 0 ? "+" : "−"}${Math.abs(n).toLocaleString("de-CH")} CHF`;
 
 // ---------------------------------------------------------------------------
 // Sektion: lädt /api/company einmal und rendert die freigegebenen Firmen-Karten.
@@ -27,30 +29,27 @@ export default function CompanySection({
   refreshTick: number;
   showCard: (key: string) => boolean;
 }) {
-  const keys = [
-    "gl.auslastung",
-    "gl.umsatz",
-    "gl.rechnungen",
-    "gl.wip",
-    "gl.vertrieb",
-    "gl.margen",
-    "prj.rentabilitaet",
-    "prj.rangliste",
-    "prj.status",
-    "hr.leistung",
-    "hr.rangliste",
-    "kd.wirtschaft",
-    "kd.rangliste",
+  const companyKeys = [
+    "gl.auslastung", "gl.umsatz", "gl.rechnungen", "gl.wip", "gl.vertrieb", "gl.margen",
+    "prj.rentabilitaet", "prj.rangliste", "prj.status", "hr.leistung", "hr.rangliste",
+    "kd.wirtschaft", "kd.rangliste",
   ];
-  const anyEnabled = keys.some(showCard);
+  const companyEnabled = companyKeys.some(showCard);
+  const econEnabled = showCard("hr.wirtschaftlichkeit");
+  const liquidityEnabled = showCard("gl.liquiditaet");
+  const anyEnabled = companyEnabled || econEnabled || liquidityEnabled;
 
   const [data, setData] = useState<CompanyReport | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const reqRef = useRef(0);
 
+  // Sensible Karten: eigene Endpunkte (data.salary / data.liquidity).
+  const [econ, setEcon] = useState<PersonEconomics[] | null>(null);
+  const [liquidity, setLiquidity] = useState<{ released: boolean; months: Record<string, { balance: number; income: number; expense: number; note?: string }> } | null>(null);
+
   useEffect(() => {
-    if (!anyEnabled) return;
+    if (!companyEnabled) return;
     const myReq = ++reqRef.current;
     setLoading(true);
     setError("");
@@ -63,7 +62,29 @@ export default function CompanySection({
       })
       .catch(() => { if (myReq === reqRef.current) setError("Firmendaten konnten nicht geladen werden."); })
       .finally(() => { if (myReq === reqRef.current) setLoading(false); });
-  }, [year, month, refreshTick, anyEnabled]);
+  }, [year, month, refreshTick, companyEnabled]);
+
+  useEffect(() => {
+    if (!econEnabled) return;
+    let cancelled = false;
+    setEcon(null);
+    fetch(`/api/wirtschaftlichkeit?year=${year}&month=${month}`)
+      .then((r) => r.json())
+      .then((d: { people?: PersonEconomics[] }) => { if (!cancelled) setEcon(d.people ?? []); })
+      .catch(() => { if (!cancelled) setEcon([]); });
+    return () => { cancelled = true; };
+  }, [year, month, refreshTick, econEnabled]);
+
+  useEffect(() => {
+    if (!liquidityEnabled) return;
+    let cancelled = false;
+    setLiquidity(null);
+    fetch(`/api/liquidity`)
+      .then((r) => r.json())
+      .then((d: { released: boolean; months: Record<string, { balance: number; income: number; expense: number }> }) => { if (!cancelled) setLiquidity(d); })
+      .catch(() => { if (!cancelled) setLiquidity({ released: false, months: {} }); });
+    return () => { cancelled = true; };
+  }, [year, month, refreshTick, liquidityEnabled]);
 
   if (!anyEnabled) return null;
 
@@ -78,36 +99,100 @@ export default function CompanySection({
       {error && (
         <div className="card" style={{ color: "#c0145a", fontWeight: 600 }}>{error}</div>
       )}
-      {!loading && data && (
-        <div style={{ display: "grid", gap: 22 }}>
-          {showCard("gl.auslastung") && <UtilizationCard d={data} />}
-          {(showCard("gl.umsatz") || showCard("gl.rechnungen")) && (
-            <div style={{ display: "grid", gridTemplateColumns: showCard("gl.umsatz") && showCard("gl.rechnungen") ? "1.4fr 1fr" : "1fr", gap: 22 }} className="responsive-grid">
-              {showCard("gl.umsatz") && <RevenueCard f={data.finance} />}
-              {showCard("gl.rechnungen") && <InvoiceStatusCard f={data.finance} />}
-            </div>
-          )}
-          {showCard("gl.vertrieb") && <PipelineCard f={data.finance} />}
-          {showCard("gl.wip") && <WipCard f={data.finance} />}
-          {showCard("prj.status") && <ProjectStatusCard d={data} />}
-          {(showCard("hr.leistung") || showCard("hr.rangliste")) && (
-            <div style={{ display: "grid", gridTemplateColumns: showCard("hr.leistung") && showCard("hr.rangliste") ? "1.4fr 1fr" : "1fr", gap: 22 }} className="responsive-grid">
-              {showCard("hr.leistung") && <EmployeeCard rows={data.employees} />}
-              {showCard("hr.rangliste") && <TeamRankingCard rows={data.employees} />}
-            </div>
-          )}
-          {showCard("prj.rentabilitaet") && <ProjectProfitCard rows={data.projects} />}
-          {showCard("prj.rangliste") && <ProjectRankingCard rows={data.projects} />}
-          {(showCard("kd.wirtschaft") || showCard("kd.rangliste")) && (
-            <div style={{ display: "grid", gridTemplateColumns: showCard("kd.wirtschaft") && showCard("kd.rangliste") ? "1.4fr 1fr" : "1fr", gap: 22 }} className="responsive-grid">
-              {showCard("kd.wirtschaft") && <CustomerCard rows={data.customers} />}
-              {showCard("kd.rangliste") && <CustomerRankingCard rows={data.customers} />}
-            </div>
-          )}
-          {showCard("gl.margen") && <MarginCard f={data.finance} />}
-        </div>
-      )}
+      <div style={{ display: "grid", gap: 22 }}>
+        {!loading && data && (
+          <>
+            {showCard("gl.auslastung") && <UtilizationCard d={data} />}
+            {(showCard("gl.umsatz") || showCard("gl.rechnungen")) && (
+              <div style={{ display: "grid", gridTemplateColumns: showCard("gl.umsatz") && showCard("gl.rechnungen") ? "1.4fr 1fr" : "1fr", gap: 22 }} className="responsive-grid">
+                {showCard("gl.umsatz") && <RevenueCard f={data.finance} />}
+                {showCard("gl.rechnungen") && <InvoiceStatusCard f={data.finance} />}
+              </div>
+            )}
+            {showCard("gl.vertrieb") && <PipelineCard f={data.finance} />}
+            {showCard("gl.wip") && <WipCard f={data.finance} />}
+            {showCard("prj.status") && <ProjectStatusCard d={data} />}
+            {(showCard("hr.leistung") || showCard("hr.rangliste")) && (
+              <div style={{ display: "grid", gridTemplateColumns: showCard("hr.leistung") && showCard("hr.rangliste") ? "1.4fr 1fr" : "1fr", gap: 22 }} className="responsive-grid">
+                {showCard("hr.leistung") && <EmployeeCard rows={data.employees} />}
+                {showCard("hr.rangliste") && <TeamRankingCard rows={data.employees} />}
+              </div>
+            )}
+            {showCard("prj.rentabilitaet") && <ProjectProfitCard rows={data.projects} />}
+            {showCard("prj.rangliste") && <ProjectRankingCard rows={data.projects} />}
+            {(showCard("kd.wirtschaft") || showCard("kd.rangliste")) && (
+              <div style={{ display: "grid", gridTemplateColumns: showCard("kd.wirtschaft") && showCard("kd.rangliste") ? "1.4fr 1fr" : "1fr", gap: 22 }} className="responsive-grid">
+                {showCard("kd.wirtschaft") && <CustomerCard rows={data.customers} />}
+                {showCard("kd.rangliste") && <CustomerRankingCard rows={data.customers} />}
+              </div>
+            )}
+            {showCard("gl.margen") && <MarginCard f={data.finance} />}
+          </>
+        )}
+
+        {/* Sensible Karten — eigene Endpunkte, unabhängig vom Firmen-Fetch */}
+        {showCard("hr.wirtschaftlichkeit") && <EconomicsCard rows={econ} />}
+        {showCard("gl.liquiditaet") && <LiquidityCard data={liquidity} />}
+      </div>
     </section>
+  );
+}
+
+// === hr.wirtschaftlichkeit ===
+function EconomicsCard({ rows }: { rows: PersonEconomics[] | null }) {
+  if (rows === null) {
+    return <div className="card"><CardTitle icon="💼" title="Wirtschaftlichkeit pro Mitarbeiter" /><Empty text="Wird geladen…" /></div>;
+  }
+  if (rows.length === 0) {
+    return (
+      <div className="card">
+        <CardTitle icon="💼" title="Wirtschaftlichkeit pro Mitarbeiter" />
+        <Empty text="Noch keine Löhne freigegeben — in der Benutzerverwaltung unter 💰 Löhne erfassen und freigeben." />
+      </div>
+    );
+  }
+  return (
+    <div className="card">
+      <CardTitle icon="💼" title="Wirtschaftlichkeit pro Mitarbeiter" hint="Kosten vs. erwirtschaftet diesen Monat · DB = erwirtschaftet − Kosten" />
+      <Table
+        head={["Mitarbeiter", "Kosten/Mt.", "produziert", "fakturiert", "DB (prod.)", "Produkt."]}
+        align={["left", "right", "right", "right", "right", "right"]}
+        rows={rows.map((e) => [
+          e.name,
+          chf(e.costMonthly),
+          <span key="p" title={`${e.billableHours} h × ${e.sellRate} CHF/h`}>{chf(e.producedRevenue)}</span>,
+          chf(e.invoicedRevenue),
+          <span key="db" style={{ fontWeight: 800, color: e.dbProduced >= 0 ? "#0a8a4a" : "#c0145a" }}>{chfSigned(e.dbProduced)}</span>,
+          p(e.productivityPct),
+        ])}
+      />
+    </div>
+  );
+}
+
+// === gl.liquiditaet ===
+function LiquidityCard({ data }: { data: { released: boolean; months: Record<string, { balance: number; income: number; expense: number }> } | null }) {
+  if (data === null) return <div className="card"><CardTitle icon="💧" title="Liquidität" /><Empty text="Wird geladen…" /></div>;
+  const months = Object.keys(data.months).sort().reverse();
+  if (!data.released || months.length === 0) {
+    return <div className="card"><CardTitle icon="💧" title="Liquidität" /><Empty text="Noch keine Liquiditätsdaten freigegeben." /></div>;
+  }
+  const latest = data.months[months[0]];
+  return (
+    <div className="card">
+      <CardTitle icon="💧" title="Liquidität" hint={`Stand ${months[0]}`} />
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 18, marginBottom: 14 }}>
+        <Stat label="Kontostand" value={chf(latest.balance)} color="var(--hotpink)" />
+        <Stat label="Einnahmen (Mt.)" value={chf(latest.income)} />
+        <Stat label="Ausgaben (Mt.)" value={chf(latest.expense)} />
+        <Stat label="Saldo (Mt.)" value={chfSigned(latest.income - latest.expense)} color={latest.income - latest.expense >= 0 ? "#0a8a4a" : "#c0145a"} />
+      </div>
+      <Table
+        head={["Monat", "Kontostand", "Einnahmen", "Ausgaben"]}
+        align={["left", "right", "right", "right"]}
+        rows={months.map((mk) => [mk, chf(data.months[mk].balance), chf(data.months[mk].income), chf(data.months[mk].expense)])}
+      />
+    </div>
   );
 }
 
