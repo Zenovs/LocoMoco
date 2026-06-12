@@ -127,9 +127,62 @@ Zertifikatswarnhinweis kommt — CA-Datei liegt unter
 `/var/lib/caddy/.local/share/caddy/pki/authorities/local/root.crt` auf dem Server;
 auf dem Mac in die Schlüsselbund-Verwaltung importieren und „Immer vertrauen".
 
+## 10. Portal + Mac-Client (Download-Hub an der Server-IP)
+
+Ziel: An der **Server-IP** (`http://<SERVER-IP>/`) erscheint ein **Portal**, von
+dem die Mitarbeitenden den **Loco-Moco-Mac-Client** herunterladen. Der Client ist
+*dünn* — er hält keine Daten, sondern öffnet nur ein Fenster auf den Server
+(`http://<SERVER-IP>:4577`). So lässt sich derselbe Server später für **weitere
+Apps** nutzen (eigene Kachel + eigener Download).
+
+**Voraussetzung:** Caddy aus Schritt 9 läuft (liefert Portal auf Port 80 aus).
+Port 80 im LAN freigeben:
+
+```bash
+sudo ufw allow from 192.168.0.0/16 to any port 80 proto tcp
+```
+
+**Auslieferung:** `deploy.sh` spiegelt bei jedem Deploy automatisch
+- `app/portal/*`            → `/opt/locomoco/portal/`   (Portal-Startseite)
+- `app/deploy/downloads/*`  → `/opt/locomoco/downloads/` (die `.zip`-Clients)
+
+Beim ersten Mal Caddy neu starten, danach läuft alles über den Auto-Deploy:
+
+```bash
+sudo cp /opt/locomoco/app/deploy/Caddyfile /etc/caddy/Caddyfile
+sudo systemctl restart caddy
+```
+
+Test: `http://<SERVER-IP>/` zeigt das Portal; `http://<SERVER-IP>/downloads/`
+listet die Clients.
+
+### Client bauen / aktualisieren (auf einem Mac)
+
+Der Mac-Client wird auf einem Mac kompiliert (Universal: Apple Silicon + Intel)
+und das ZIP ins Repo gelegt — der Server liefert es dann automatisch aus:
+
+```bash
+scripts/build-client.sh                       # erzeugt dist/Loco-Moco-Mac.zip
+cp dist/Loco-Moco-Mac.zip deploy/downloads/   # ins Repo übernehmen
+git add deploy/downloads/Loco-Moco-Mac.zip && git commit -m "Client-Update" && git push
+```
+
+### So installiert der Mitarbeitende (steht auch auf dem Portal)
+1. ZIP von `http://<SERVER-IP>/` herunterladen, doppelklicken (entpackt).
+2. „Loco Moco" nach **Programme** ziehen.
+3. Erster Start: **Rechtsklick → Öffnen** (einmalig wegen Gatekeeper).
+4. **Server-Adresse** eingeben (Portal zeigt sie an, z. B. `http://192.168.1.50:4577`).
+   Gespeichert in `~/.loco-moco-client/server.txt`; später über Menü
+   **Ablage → Server ändern…** anpassbar.
+
+### Weitere App später hinzufügen
+1. Neue Kachel in `portal/index.html` ergänzen (Name, Download-Link).
+2. Deren Client-Paket nach `deploy/downloads/` legen.
+3. Den neuen Dienst auf einem eigenen Port via systemd betreiben (analog
+   `locomoco.service`); der Client zeigt dann auf `http://<SERVER-IP>:<port>`.
+
 ---
 
-## Danach
-- **Mac-App als Hülle:** die native App zeigt künftig `https://locomoco.intern`
-  statt `localhost` — kommt als nächster Schritt (eigene, schlanke Launcher-Variante).
-- **Etappe 2:** Login + Rollen, bevor Lohn/Liquidität dazukommen.
+## Etappe 2
+Login + Rollen sind aktiv (`LOCO_AUTH=1` + `AUTH_SECRET` im Dienst), bevor
+Lohn/Liquidität dazukommen.

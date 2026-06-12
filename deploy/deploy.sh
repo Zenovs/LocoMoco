@@ -23,6 +23,15 @@ fi
 echo "[deploy] Build …"
 $PNPM build
 
+echo "[deploy] Portal & Client-Downloads …"
+# Statisches Portal + herunterladbare Clients an feste Pfade spiegeln, die
+# Caddy ausliefert. /opt/locomoco gehört dem locomoco-User -> kein sudo nötig.
+PORTAL_DIR="${LOCO_PORTAL_DIR:-/opt/locomoco/portal}"
+DL_DIR="${LOCO_DL_DIR:-/opt/locomoco/downloads}"
+mkdir -p "$PORTAL_DIR" "$DL_DIR"
+cp -f "$APP_DIR"/portal/* "$PORTAL_DIR"/ 2>/dev/null || true
+cp -f "$APP_DIR"/deploy/downloads/* "$DL_DIR"/ 2>/dev/null || true
+
 echo "[deploy] Dienst neu starten …"
 sudo systemctl restart locomoco
 

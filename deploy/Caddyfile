@@ -1,13 +1,32 @@
-# Optional, aber empfohlen SPÄTESTENS bevor Lohn-/Liquiditätsdaten dazukommen:
-# Caddy als Reverse-Proxy gibt eine schöne URL + HTTPS (intern, eigene CA).
+# Caddy als Front des internen Servers.
 #
 # Installieren:  sudo apt install caddy
 #                sudo cp deploy/Caddyfile /etc/caddy/Caddyfile
 #                sudo systemctl restart caddy
 #
-# "tls internal" = selbst-signiertes Zertifikat von Caddys interner CA.
-# Auf den Client-Macs einmalig Caddys Root-CA vertrauen (siehe SERVER_SETUP.md).
+# Aufbau:
+#  - Port 80 (die Server-IP)  ->  PORTAL: Download-Hub für die Clients + die
+#    herunterladbaren App-Pakete unter /downloads/.
+#  - Die Loco-Moco-App selbst läuft per systemd auf 0.0.0.0:4577 und wird vom
+#    Client direkt als  http://<server-ip>:4577  angesprochen (kein Caddy nötig).
+#  - Optional zusätzlich ein schöner Hostname mit internem TLS für den Browser.
 
+# --- Portal + Downloads an der Server-IP ---
+:80 {
+	# Herunterladbare Clients (z. B. /downloads/Loco-Moco-Mac.zip)
+	handle_path /downloads/* {
+		root * /opt/locomoco/downloads
+		file_server browse
+	}
+	# Alles andere: die Portal-Startseite
+	handle {
+		root * /opt/locomoco/portal
+		file_server
+	}
+}
+
+# --- Optional: Loco Moco unter hübschem Hostnamen mit internem TLS ---
+# (Für Browser-Nutzer. Der Mac-Client nutzt direkt http://<ip>:4577.)
 locomoco.intern {
 	tls internal
 	reverse_proxy 127.0.0.1:4577
