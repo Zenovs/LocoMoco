@@ -86,9 +86,11 @@ async function executeTool(name: string, args: Record<string, unknown>): Promise
       return await loadEmployees();
     }
     if (name === "get_employee_productivity") {
+      const nm = String(args.name ?? "").trim();
+      if (!nm) return { error: "Bitte den Namen der Person angeben (frag ggf. nach)." };
       const emps = await loadEmployees();
-      const u = matchEmployee(emps, String(args.name ?? ""));
-      if (!u) return { error: `Mitarbeiter '${args.name}' nicht gefunden.` };
+      const u = matchEmployee(emps, nm);
+      if (!u) return { error: `Mitarbeiter '${nm}' nicht gefunden. Verfügbar: ${emps.map((e) => e.name).join(", ")}` };
       const d = await fetch(`/api/month?userId=${u.id}&year=${args.year}&month=${args.month}`).then((r) => r.json());
       if (d.error) return { error: d.error };
       const p = d.productivity ?? {};
