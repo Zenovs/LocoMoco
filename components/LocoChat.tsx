@@ -161,12 +161,24 @@ export default function LocoChat({ defaultYear, defaultMonth }: { defaultYear: n
       { role: "user", content: q },
     ];
 
+    // Modell frisch bestimmen (falls sich installierte Modelle geändert haben),
+    // sonst droht ein 404, wenn das gemerkte Modell entfernt wurde.
+    let useModel = model;
+    try {
+      const tags = await fetch(`${OLLAMA}/api/tags`).then((r) => r.json());
+      const names: string[] = (tags.models ?? []).map((m: { name: string }) => m.name);
+      if (names.length) {
+        useModel = PREFERRED.find((p) => names.includes(p)) ?? names[0];
+        if (useModel !== model) setModel(useModel);
+      }
+    } catch { /* offline -> mit gemerktem Modell versuchen */ }
+
     try {
       for (let step = 0; step < 6; step++) {
         const res = await fetch(`${OLLAMA}/api/chat`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ model, messages: convo, tools: TOOLS, stream: false }),
+          body: JSON.stringify({ model: useModel, messages: convo, tools: TOOLS, stream: false }),
         });
         if (!res.ok) throw new Error(`Ollama ${res.status}`);
         const data = (await res.json()) as { message: ChatMsg };
