@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireCapability } from "@/lib/access";
+import { requireCapability, currentUser } from "@/lib/access";
 import { authEnabled } from "@/lib/session";
 import { readSalaries, writeSalary, deleteSalary, vollkosten, type Salaries } from "@/lib/salary";
+import { cacheClearAll } from "@/lib/moco/cache";
+import { audit } from "@/lib/audit";
 
 // Löhne erfassen/freigeben — nur mit salary.manage. Liefert die ROHWERTE
 // (Bruttolohn/Faktor) — daher streng gated.
@@ -43,5 +45,9 @@ export async function POST(req: NextRequest) {
         sellRate: b.sellRate,
         released: b.released,
       });
+  // Margen (Firmen-Cache) hängen jetzt am Lohn -> Cache leeren, damit sie neu rechnen.
+  cacheClearAll();
+  const actor = authEnabled() ? await currentUser(req) : null;
+  audit(actor?.name ?? "lokal", actor?.role, b.delete ? "salary.delete" : "salary.change", `MOCO-Person ${b.userId}`);
   return NextResponse.json({ ok: true, salaries: withCost(salaries) });
 }

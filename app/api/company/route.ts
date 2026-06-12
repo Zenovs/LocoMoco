@@ -11,7 +11,10 @@ import {
 } from "@/lib/moco/client";
 import { getMonthRange, toISODate, subtractDays } from "@/lib/metrics/dates";
 import { cacheGet, cacheSet } from "@/lib/moco/cache";
-import { requireDataAll } from "@/lib/access";
+import { requireDataAll, currentUser, hasCapability } from "@/lib/access";
+import { authEnabled } from "@/lib/session";
+import { makeHourlyCost } from "@/lib/costRates";
+import { readSalaries } from "@/lib/salary";
 import {
   calcAgencyUtilization,
   calcProjectProfit,
@@ -46,7 +49,13 @@ export async function GET(req: NextRequest) {
   const year = Number(sp.get("year") ?? now.getFullYear());
   const month = Number(sp.get("month") ?? now.getMonth() + 1);
 
-  const cacheKey = `company-result:${config.subdomain}:${year}:${month}`;
+  // Darf der Anfragende Löhne sehen? Nur dann fliessen lohn-abgeleitete Kosten
+  // in die Margen — sonst der Fallback-Satz (kein Lohn-Leck über die Marge).
+  const me = authEnabled() ? await currentUser(req) : null;
+  const canSalary = !authEnabled() || (!!me && hasCapability(me, "data.salary"));
+
+  // Cache je nach Lohn-Zugriff getrennt (Margen unterscheiden sich).
+  const cacheKey = `company-result:${config.subdomain}:${year}:${month}:sal${canSalary ? 1 : 0}`;
   const hit = cacheGet<CompanyReport>(cacheKey);
   if (hit) return NextResponse.json(hit);
 
@@ -98,7 +107,9 @@ export async function GET(req: NextRequest) {
         getOffers(config).catch(() => [] as MocoOffer[]),
       ]);
       if (invoices.length || offers.length) {
-        finance = calcFinance(invoices, offers, activities, projects, readRates(), year, month, now);
+        // Stundenkosten: Lohn-abgeleitet (nur wenn data.salary), sonst Fallback-Satz.
+        const hourlyCost = makeHourlyCost(employments, canSalary ? readSalaries() : {}, readRates(), year, month);
+        finance = calcFinance(invoices, offers, activities, projects, hourlyCost, year, month, now);
       }
     } catch {
       finance = null;

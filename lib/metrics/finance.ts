@@ -4,8 +4,6 @@ import type {
   MocoOffer,
   MocoProject,
 } from "@/types/moco";
-import type { Rates } from "@/lib/rates";
-import { rateFor, hasAnyRate } from "@/lib/rates";
 
 const r0 = (n: number) => Math.round(n);
 const r1 = (n: number) => Math.round(n * 10) / 10;
@@ -77,7 +75,7 @@ export function calcFinance(
   offers: MocoOffer[],
   activities: MocoActivity[], // gewählter Monat, alle MA
   projects: Map<number, MocoProject>,
-  rates: Rates,
+  hourlyCost: (userId: number) => number, // einheitliche Stundenkosten (Lohn oder Fallback)
   year: number,
   month: number,
   now: Date = new Date()
@@ -141,14 +139,16 @@ export function calcFinance(
   }
 
   // --- Margen (Monat): Umsatz aus Rechnungen − Personalkosten aus Stunden×Satz ---
-  const hasRates = hasAnyRate(rates);
+  let hasRates = false;
 
   // Personalkosten je Kunde/Projekt aus den Monatsaktivitäten
   const costByCustomer = new Map<number, number>();
   const costByProject = new Map<number, number>();
   const billableHoursByProject = new Map<number, number>();
   for (const a of activities) {
-    const cost = a.hours * rateFor(rates, a.user.id);
+    const rate = hourlyCost(a.user.id);
+    if (rate > 0) hasRates = true;
+    const cost = a.hours * rate;
     costByProject.set(a.project.id, (costByProject.get(a.project.id) ?? 0) + cost);
     const custId = projects.get(a.project.id)?.customer?.id ?? -1;
     costByCustomer.set(custId, (costByCustomer.get(custId) ?? 0) + cost);

@@ -24,7 +24,7 @@ const input: React.CSSProperties = {
 };
 const labelS: React.CSSProperties = { fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: ".04em", color: "var(--plum-soft)" };
 
-type Tab = "users" | "roles" | "conn" | "rates" | "salaries" | "liquidity";
+type Tab = "users" | "roles" | "conn" | "rates" | "salaries" | "liquidity" | "audit";
 
 export default function AdminPage() {
   const [tab, setTab] = useState<Tab>("users");
@@ -98,6 +98,14 @@ export default function AdminPage() {
     const res = await fetch("/api/admin/salaries", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId, ...patch }) });
     const d = await res.json(); if (!res.ok) return flash(d.error ?? "Fehler");
     if (d.salaries) setSalaries(d.salaries); flash("Lohn gespeichert");
+  }
+
+  // ----- Audit-Protokoll (users.manage) -----
+  type AuditEntry = { ts: string; user: string; role?: string; action: string; detail?: string };
+  const [auditEntries, setAuditEntries] = useState<AuditEntry[]>([]);
+  async function loadAudit() {
+    const d = await fetch("/api/admin/audit").then((r) => r.json()).catch(() => ({ entries: [] }));
+    setAuditEntries(d.entries ?? []);
   }
 
   // ----- Liquidität (sensibel; liquidity.manage) -----
@@ -223,6 +231,7 @@ export default function AdminPage() {
           {canConfig && <button className={`chip ${tab === "rates" ? "active" : ""}`} onClick={() => setTab("rates")}>💸 Kostensätze</button>}
           {canSalary && <button className={`chip ${tab === "salaries" ? "active" : ""}`} onClick={() => setTab("salaries")}>💰 Löhne</button>}
           {canLiquidity && <button className={`chip ${tab === "liquidity" ? "active" : ""}`} onClick={() => setTab("liquidity")}>💧 Liquidität</button>}
+          {canUsers && <button className={`chip ${tab === "audit" ? "active" : ""}`} onClick={() => { setTab("audit"); loadAudit(); }}>📋 Protokoll</button>}
         </div>
       </div>
       {msg && <div className="card" style={{ marginBottom: 16, fontWeight: 700, color: "var(--hotpink)" }}>{msg}</div>}
@@ -372,9 +381,10 @@ export default function AdminPage() {
 
       {tab === "rates" && (
         <section className="card" style={{ maxWidth: 640 }}>
-          <h2 style={{ fontSize: 17, color: "var(--plum)", marginBottom: 4 }}>Personalkostensätze (CHF / Stunde)</h2>
+          <h2 style={{ fontSize: 17, color: "var(--plum)", marginBottom: 4 }}>Personalkostensätze (CHF / Stunde) — Fallback</h2>
           <p style={{ fontSize: 13, color: "var(--plum-soft)", fontWeight: 600, marginBottom: 16 }}>
-            Basis für Marge & Deckungsbeitrag. Der Standardsatz gilt für alle; pro Person kann er überschrieben werden. Leer = Standard.
+            Wird nur genutzt, wenn für eine Person <b>kein Lohn</b> hinterlegt ist (Tab 💰 Löhne). Ist ein Lohn da,
+            werden die Stundenkosten daraus berechnet (Vollkosten ÷ Soll) — keine Doppelpflege nötig.
           </p>
           <div style={{ display: "flex", alignItems: "flex-end", gap: 12, marginBottom: 20 }}>
             <Field label="Standardsatz für alle">
@@ -513,6 +523,39 @@ export default function AdminPage() {
               </tbody>
             </table>
           </div>
+        </section>
+      )}
+
+      {tab === "audit" && (
+        <section className="card">
+          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8 }}>
+            <h2 style={{ fontSize: 17, color: "var(--plum)" }}>📋 Zugriffsprotokoll</h2>
+            <button className="chip" style={{ marginLeft: "auto" }} onClick={loadAudit}>↻ aktualisieren</button>
+          </div>
+          <p style={{ fontSize: 13, color: "var(--plum-soft)", fontWeight: 600, marginBottom: 16 }}>
+            Wer hat sensible Daten (Löhne/Liquidität) gesehen oder geändert. Neueste zuerst.
+          </p>
+          {auditEntries.length === 0 ? (
+            <p style={{ fontSize: 13, color: "var(--plum-soft)", fontWeight: 600 }}>Noch keine Einträge.</p>
+          ) : (
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                <thead><tr>{["Zeit", "Benutzer", "Aktion", "Detail"].map((h, i) => (
+                  <th key={i} style={{ textAlign: "left", padding: "7px 8px", fontSize: 11, fontWeight: 800, textTransform: "uppercase", color: "var(--plum-soft)", borderBottom: "1.5px solid var(--chip-border)" }}>{h}</th>
+                ))}</tr></thead>
+                <tbody>
+                  {auditEntries.map((e, i) => (
+                    <tr key={i}>
+                      <td style={{ padding: "7px 8px", color: "var(--plum-soft)", whiteSpace: "nowrap" }}>{new Date(e.ts).toLocaleString("de-CH")}</td>
+                      <td style={{ padding: "7px 8px", fontWeight: 700, color: "var(--plum)" }}>{e.user}{e.role ? ` (${e.role})` : ""}</td>
+                      <td style={{ padding: "7px 8px" }}><span style={{ fontWeight: 700, color: e.action.includes("change") || e.action.includes("delete") || e.action.includes("release") ? "#c0145a" : "var(--plum)" }}>{e.action}</span></td>
+                      <td style={{ padding: "7px 8px", color: "var(--plum-soft)" }}>{e.detail ?? ""}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </section>
       )}
     </div>
