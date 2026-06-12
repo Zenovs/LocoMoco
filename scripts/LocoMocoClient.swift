@@ -114,6 +114,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         cfg.userContentController = ucc
         webView = WKWebView(frame: frame, configuration: cfg)
         webView.appearance = NSAppearance(named: .aqua)
+        if #available(macOS 13.3, *) { webView.isInspectable = true } // Safari → Entwickler → Loco Moco
         webView.navigationDelegate = self
         webView.autoresizingMask = [.width, .height]
         container.addSubview(webView)
@@ -177,6 +178,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         try? p.run()
         NSApp.terminate(nil)
         return true
+    }
+
+    // Diagnose-Log nach ~/.loco-moco-client/client.log
+    func logLine(_ s: String) {
+        let line = "\(Date()) \(s)\n"
+        let path = "\(CFG_DIR)/client.log"
+        guard let data = line.data(using: .utf8) else { return }
+        if let fh = FileHandle(forWritingAtPath: path) {
+            fh.seekToEndOfFile(); fh.write(data); try? fh.close()
+        } else {
+            try? FileManager.default.createDirectory(atPath: CFG_DIR, withIntermediateDirectories: true)
+            try? data.write(to: URL(fileURLWithPath: path))
+        }
     }
 
     // MARK: Server-Adresse
@@ -365,20 +379,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
             NSAnimationContext.runAnimationGroup({ ctx in ctx.duration = 0.4; overlay.animator().alphaValue = 0 },
                                                  completionHandler: { self.overlay.isHidden = true })
         }
+        logLine("didFinish url=\(wv.url?.absoluteString ?? "?")")
         if wv.url?.absoluteString.hasPrefix(server) == true {
             loadedReal = true
             crashReloads = 0 // erfolgreich geladen -> Zähler zurücksetzen
             if !didCheckUpdate { didCheckUpdate = true; checkForUpdate() }
         }
     }
-    func webView(_ wv: WKWebView, didFail navigation: WKNavigation!, withError error: Error) { showError() }
-    func webView(_ wv: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) { showError() }
+    func webView(_ wv: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
+        logLine("didFail: code=\((error as NSError).code) \(error.localizedDescription)")
+        showError()
+    }
+    func webView(_ wv: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
+        logLine("didFailProvisional: code=\((error as NSError).code) \(error.localizedDescription)")
+        showError()
+    }
 
     // Inhalts-Prozess (Renderer) wurde vom System beendet — meist Speicherdruck.
     // Statt der leeren „This page couldn't load"-Seite automatisch neu laden;
     // beim Neuladen ist der Cache warm, sodass es i. d. R. sofort klappt. Mit
     // Begrenzung gegen Endlos-Schleifen.
     func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
+        logLine("contentProcessTerminated reload#\(crashReloads + 1)")
         crashReloads += 1
         if crashReloads <= 6 {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { self.connect() }
