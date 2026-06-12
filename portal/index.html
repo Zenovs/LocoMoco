@@ -40,7 +40,10 @@
     padding:12px 16px;border-radius:13px;font-size:15px;display:inline-block;
   }
   .btn:active{transform:translateY(1px)}
-  .lead{margin:0;color:var(--muted);font-weight:600;font-size:13.5px}
+  .lead{margin:0;color:var(--ink);font-weight:700;font-size:14.5px}
+  .steps{margin:8px 0 10px;padding-left:20px;color:var(--ink);font-weight:600;font-size:13.5px;line-height:1.9}
+  .steps code{background:#f0eefc;border-radius:6px;padding:1px 6px;font-weight:700}
+  .note{margin:10px 0 0;color:var(--muted);font-weight:600;font-size:12.5px;line-height:1.55}
   .cmd{background:#1c1430;border-radius:12px;padding:12px 12px;display:flex;align-items:flex-start;
     justify-content:space-between;gap:10px}
   .cmd code{color:#ffd9ef;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;
@@ -82,18 +85,23 @@
         </div>
       </div>
 
-      <p class="lead">Schnell-Installation — im <b>Terminal</b> einfügen (installiert & startet automatisch, ganz ohne Sicherheitswarnung):</p>
+      <p class="lead">So installierst du Loco Moco — <b>in 2 Schritten, ohne Sicherheitswarnung:</b></p>
+      <ol class="steps">
+        <li><b>Terminal</b> öffnen: <code>⌘</code>+<code>Leertaste</code> → „Terminal" tippen → <code>Enter</code>.</li>
+        <li>Diesen Befehl <b>einfügen</b> und <code>Enter</code> drücken:</li>
+      </ol>
       <div class="cmd">
         <code id="cmd">…</code>
         <button class="copy" onclick="copyCmd()">Kopieren</button>
       </div>
+      <p class="note">Installiert nach „Programme", setzt die Server-Adresse und startet die App — fertig. <b>Keine</b> „Apple konnte nicht überprüfen"-Meldung, weil der Browser dabei nichts lädt.</p>
 
       <details>
-        <summary>Lieber manuell herunterladen</summary>
+        <summary>Lieber manuell als ZIP (für Profis)</summary>
         <a class="btn ghost" href="/downloads/Loco-Moco-Mac.zip" download>⬇︎ Mac-App (ZIP)</a>
         <ol>
-          <li><b>ZIP</b> doppelklicken zum Entpacken, <b>„Loco Moco"</b> nach <b>Programme</b> ziehen.</li>
-          <li>Beim ersten Start kommt evtl. „Apple konnte nicht überprüfen…". Dann einmal im Terminal:
+          <li><b>ZIP</b> entpacken, <b>„Loco Moco"</b> nach <b>Programme</b> ziehen.</li>
+          <li>Kommt „Apple konnte nicht überprüfen…", einmal im Terminal das Sperr-Flag entfernen — <b>diesen Text tippen</b> (mit Leerzeichen am Ende) und dann die App ins Terminal ziehen:
             <div class="cmd small"><code id="xattr">…</code><button class="copy" onclick="copyXattr()">Kopieren</button></div>
           </li>
           <li>Öffnen, dann <b>Server-Adresse</b> eingeben: <code id="srv">…</code></li>

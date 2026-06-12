@@ -17,12 +17,17 @@ fi
 
 ZIP_URL="http://$HOST/downloads/Loco-Moco-Mac.zip"
 SERVER_URL="http://$HOST:4577"
-APP="/Applications/Loco Moco.app"
+# Bevorzugt /Applications; ohne Schreibrecht (kein Admin) nach ~/Applications.
+if [ -w /Applications ]; then APPDIR="/Applications"; else APPDIR="$HOME/Applications"; mkdir -p "$APPDIR"; fi
+APP="$APPDIR/Loco Moco.app"
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 
 echo "⬇︎  Lade Loco Moco von $ZIP_URL …"
-curl -fsSL "$ZIP_URL" -o "$TMP/loco.zip"
+if ! curl -fsSL "$ZIP_URL" -o "$TMP/loco.zip" || [ ! -s "$TMP/loco.zip" ]; then
+  echo "❌ Download fehlgeschlagen. Läuft der Server und stimmt die IP ($HOST)?" >&2
+  exit 1
+fi
 
 echo "📦  Entpacke …"
 ditto -x -k "$TMP/loco.zip" "$TMP/unpacked"
