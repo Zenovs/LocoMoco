@@ -24,6 +24,7 @@ import {
   type CompanyReport,
 } from "@/lib/metrics/company";
 import { calcFinance, type FinanceReport } from "@/lib/metrics/finance";
+import { calcWarnings } from "@/lib/metrics/warnings";
 import { readRates } from "@/lib/rates";
 import type { MocoInvoice, MocoOffer, MocoProject, MocoProjectReport } from "@/types/moco";
 
@@ -115,13 +116,20 @@ export async function GET(req: NextRequest) {
       finance = null;
     }
 
+    const utilization = calcAgencyUtilization(activities, employments, users, year, month);
+    const projectProfit = calcProjectProfit(reports, projects, activities);
+    const projectStatus = calcProjectStatus(projectList, reports, recentActivities, now);
+    const employees = calcEmployeePerf(activities, employments, users, year, month);
+    const customers = calcCustomerEcon(activities, projects);
+
     const report: CompanyReport = {
-      utilization: calcAgencyUtilization(activities, employments, users, year, month),
-      projects: calcProjectProfit(reports, projects, activities),
-      projectStatus: calcProjectStatus(projectList, reports, recentActivities, now),
-      employees: calcEmployeePerf(activities, employments, users, year, month),
-      customers: calcCustomerEcon(activities, projects),
+      utilization,
+      projects: projectProfit,
+      projectStatus,
+      employees,
+      customers,
       finance,
+      warnings: calcWarnings(projectProfit, employees, customers, projectStatus, utilization, finance),
     };
 
     cacheSet(cacheKey, report, REPORT_TTL_MS);

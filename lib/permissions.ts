@@ -36,6 +36,7 @@ export const CARDS = [
   { key: "hr.rangliste", label: "Team-Rangliste" },
   { key: "kd.wirtschaft", label: "Kunden-Wirtschaftlichkeit" },
   { key: "kd.rangliste", label: "Kunden-Ranglisten" },
+  { key: "warn.center", label: "Frühwarn-Center" },
   // Sensible Karten (brauchen zusätzlich die jeweilige Lese-Freigabe)
   { key: "hr.wirtschaftlichkeit", label: "Wirtschaftlichkeit pro Mitarbeiter (Lohn)" },
   { key: "gl.liquiditaet", label: "Liquidität" },

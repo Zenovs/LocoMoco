@@ -9,6 +9,7 @@ import type {
 } from "@/lib/metrics/company";
 import type { FinanceReport, MarginRow } from "@/lib/metrics/finance";
 import type { PersonEconomics } from "@/lib/metrics/economics";
+import type { Warning } from "@/lib/metrics/warnings";
 
 const h = (n: number) => `${n.toLocaleString("de-CH", { maximumFractionDigits: 1 })} h`;
 const p = (n: number) => `${n} %`;
@@ -30,7 +31,7 @@ export default function CompanySection({
   showCard: (key: string) => boolean;
 }) {
   const companyKeys = [
-    "gl.auslastung", "gl.umsatz", "gl.rechnungen", "gl.wip", "gl.vertrieb", "gl.margen",
+    "warn.center", "gl.auslastung", "gl.umsatz", "gl.rechnungen", "gl.wip", "gl.vertrieb", "gl.margen",
     "prj.rentabilitaet", "prj.rangliste", "prj.status", "hr.leistung", "hr.rangliste",
     "kd.wirtschaft", "kd.rangliste",
   ];
@@ -102,6 +103,7 @@ export default function CompanySection({
       <div style={{ display: "grid", gap: 22 }}>
         {!loading && data && (
           <>
+            {showCard("warn.center") && <WarnCenterCard warnings={data.warnings} />}
             {showCard("gl.auslastung") && <UtilizationCard d={data} />}
             {(showCard("gl.umsatz") || showCard("gl.rechnungen")) && (
               <div style={{ display: "grid", gridTemplateColumns: showCard("gl.umsatz") && showCard("gl.rechnungen") ? "1.4fr 1fr" : "1fr", gap: 22 }} className="responsive-grid">
@@ -230,6 +232,35 @@ function Stat({ label, value, sub, color }: { label: string; value: string; sub?
       <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: ".04em", textTransform: "uppercase", color: "var(--plum-soft)" }}>{label}</div>
       <div style={{ fontFamily: "var(--font-display)", fontSize: 30, lineHeight: 1.1, color: color ?? "var(--plum)" }}>{value}</div>
       {sub && <div style={{ fontSize: 12, fontWeight: 600, color: "var(--plum-soft)" }}>{sub}</div>}
+    </div>
+  );
+}
+
+// === warn.center ===
+function WarnCenterCard({ warnings }: { warnings: Warning[] }) {
+  const sev = { high: { c: "#c0145a", bg: "#fff0f5", b: "#ffd0e6", i: "🔴" }, medium: { c: "#c97a00", bg: "#fff7e8", b: "#ffe1a8", i: "🟠" }, low: { c: "#0a7c3e", bg: "#effaf3", b: "#bfead2", i: "🟡" } };
+  const counts = { high: warnings.filter((w) => w.severity === "high").length, medium: warnings.filter((w) => w.severity === "medium").length, low: warnings.filter((w) => w.severity === "low").length };
+  return (
+    <div className="card" style={{ border: warnings.some((w) => w.severity === "high") ? "1.5px solid #ffd0e6" : undefined }}>
+      <CardTitle icon="🚨" title="Frühwarn-Center" hint={warnings.length ? `${counts.high} dringend · ${counts.medium} mittel · ${counts.low} Hinweise` : undefined} />
+      {warnings.length === 0 ? (
+        <Empty text="Alles im grünen Bereich — keine Warnungen 🎉" />
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {warnings.map((w, i) => {
+            const s = sev[w.severity];
+            return (
+              <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start", background: s.bg, border: `1.5px solid ${s.b}`, borderRadius: 12, padding: "9px 12px" }}>
+                <span style={{ fontSize: 14 }}>{s.i}</span>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: 800, color: s.c, fontSize: 13.5 }}>{w.title} <span style={{ fontWeight: 600, color: "var(--plum-soft)", fontSize: 11.5 }}>· {w.category}</span></div>
+                  {w.detail && <div style={{ fontSize: 12.5, color: "var(--plum-soft)", fontWeight: 600, marginTop: 1 }}>{w.detail}</div>}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

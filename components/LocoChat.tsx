@@ -20,6 +20,7 @@ const TOOLS = [
   { type: "function", function: { name: "get_hours_check", description: "Erfassungs-Check einer Person: Soll vs. erfasste Stunden, vergessene Tage, berücksichtigte Ferien/Krankheit.", parameters: { type: "object", properties: { name: { type: "string" }, year: { type: "number" }, month: { type: "number" } }, required: ["name", "year", "month"] } } },
   { type: "function", function: { name: "get_sleeping_projects", description: "Projekte ohne Aktivität seit längerem (Schläferprojekte), inkl. Kunde und letzter Buchung.", parameters: { type: "object", properties: {}, required: [] } } },
   { type: "function", function: { name: "get_project_status", description: "Projektstatus-Übersicht eines Monats: aktiv, über Budget, fast am Budget, ohne Aktivität, Termin überschritten.", parameters: { type: "object", properties: { year: { type: "number" }, month: { type: "number" } }, required: ["year", "month"] } } },
+  { type: "function", function: { name: "get_warnings", description: "Alle aktuellen Frühwarnungen (Budget, Verrechenbarkeit, überfällige Rechnungen, negativer DB usw.) eines Monats.", parameters: { type: "object", properties: { year: { type: "number" }, month: { type: "number" } }, required: ["year", "month"] } } },
 ];
 
 let employeeCache: { id: number; name: string }[] | null = null;
@@ -86,6 +87,13 @@ async function executeTool(name: string, args: Record<string, unknown>): Promise
       const d = await r.json();
       if (d.error) return { error: d.error };
       return { status: d.projectStatus, topOverBudget: (d.projects ?? []).filter((p: { hoursOver: number }) => p.hoursOver > 0).slice(0, 8) };
+    }
+    if (name === "get_warnings") {
+      const r = await fetch(`/api/company?year=${args.year}&month=${args.month}`);
+      if (r.status === 403) return { error: "Keine Berechtigung für firmenweite Daten." };
+      const d = await r.json();
+      if (d.error) return { error: d.error };
+      return { warnings: d.warnings ?? [] };
     }
     return { error: `Unbekanntes Tool: ${name}` };
   } catch (e) {

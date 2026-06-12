@@ -324,4 +324,6 @@ export interface CompanyReport {
   // Finanzteil (Rechnungen/Offerten/Marge). null, wenn die MOCO-Module nicht
   // zugänglich sind (z. B. 403) — die Stunden-Karten funktionieren trotzdem.
   finance: import("./finance").FinanceReport | null;
+  // Gebündelte Frühwarnungen aus allen obigen Daten.
+  warnings: import("./warnings").Warning[];
 }
