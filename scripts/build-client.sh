@@ -11,7 +11,7 @@ set -euo pipefail
 
 # Hüllen-Version. Bei jeder Änderung an LocoMocoClient.swift HOCHZÄHLEN — dann
 # holen sich installierte Clients das Update automatisch (via version.json).
-VERSION="${LOCO_CLIENT_VERSION:-2}"
+VERSION="${LOCO_CLIENT_VERSION:-3}"
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 SRC="$ROOT/scripts/LocoMocoClient.swift"

@@ -89,6 +89,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
     var loadedReal = false
     var didCheckUpdate = false
     var pendingUpdateApp: String? = nil   // entpackte neue .app, wird beim Beenden eingespielt
+    var crashReloads = 0                  // Schutz gegen Endlos-Neuladen bei Inhalts-Prozess-Absturz
 
     func applicationDidFinishLaunching(_ note: Notification) {
         if moveToApplicationsIfNeeded() { return } // verschiebt & startet neu
@@ -366,11 +367,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         }
         if wv.url?.absoluteString.hasPrefix(server) == true {
             loadedReal = true
+            crashReloads = 0 // erfolgreich geladen -> Zähler zurücksetzen
             if !didCheckUpdate { didCheckUpdate = true; checkForUpdate() }
         }
     }
     func webView(_ wv: WKWebView, didFail navigation: WKNavigation!, withError error: Error) { showError() }
     func webView(_ wv: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) { showError() }
+
+    // Inhalts-Prozess (Renderer) wurde vom System beendet — meist Speicherdruck.
+    // Statt der leeren „This page couldn't load"-Seite automatisch neu laden;
+    // beim Neuladen ist der Cache warm, sodass es i. d. R. sofort klappt. Mit
+    // Begrenzung gegen Endlos-Schleifen.
+    func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
+        crashReloads += 1
+        if crashReloads <= 6 {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { self.connect() }
+        } else {
+            webView.loadHTMLString(errorHTML(server), baseURL: nil)
+        }
+    }
     func showError() {
         guard !loadedReal else { return }
         webView.loadHTMLString(errorHTML(server), baseURL: nil)
