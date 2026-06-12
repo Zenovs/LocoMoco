@@ -24,7 +24,6 @@ interface DashboardData {
   productivity: ProductivityResult;
   productivityDelta: number;
   nonBillable: NonBillableProject[];
-  overBudget: OverBudgetProject[];
   timeWasters: TimeWaster[];
   hoursCheck: HoursCheckResult;
 }
@@ -56,6 +55,8 @@ export default function Dashboard() {
 
   // Schläferprojekte: lazy nachgeladen
   const [sleeping, setSleeping] = useState<SleepingProject[] | null>(null);
+  // Über Budget: separat/lazy (braucht teure Projekt-Reports)
+  const [overBudget, setOverBudget] = useState<OverBudgetProject[] | null>(null);
 
   // Auth-Status (wer ist angemeldet, welche Freigaben/Karten)
   const [auth, setAuth] = useState<{
@@ -158,6 +159,19 @@ export default function Dashboard() {
   }, [selectedUserId, year, month]);
 
   useEffect(() => { loadDashboard(); }, [loadDashboard, refreshTick]);
+
+  // "Über Budget" separat laden (teure Projekt-Reports) — nur wenn freigeschaltet.
+  useEffect(() => {
+    if (!selectedUserId) return;
+    if (auth.enabled && !auth.cards.includes("overBudget")) { setOverBudget([]); return; }
+    let cancelled = false;
+    setOverBudget(null);
+    fetch(`/api/overbudget?userId=${selectedUserId}&year=${year}&month=${month}`)
+      .then((r) => r.json())
+      .then((d: { overBudget?: OverBudgetProject[] }) => { if (!cancelled) setOverBudget(d.overBudget ?? []); })
+      .catch(() => { if (!cancelled) setOverBudget([]); });
+    return () => { cancelled = true; };
+  }, [selectedUserId, year, month, refreshTick, auth.enabled, auth.cards]);
 
   // Schläferprojekte separat laden (global). Nur, wenn die Karte freigegeben ist
   // (sonst liefert /api/sleeping ohnehin 403).
@@ -419,7 +433,14 @@ export default function Dashboard() {
             {/* Bottom row */}
             {(showCard("overBudget") || showCard("sleeping")) && (
               <div style={{ display: "grid", gridTemplateColumns: showCard("overBudget") && showCard("sleeping") ? "1fr 1fr" : "1fr", gap: 22, marginTop: 22 }} className="responsive-grid">
-                {showCard("overBudget") && <OverBudgetList projects={data.overBudget} />}
+                {showCard("overBudget") &&
+                  (overBudget === null ? (
+                    <div className="card" style={{ display: "flex", alignItems: "center", justifyContent: "center", color: "var(--plum-soft)", fontWeight: 600, minHeight: 160 }}>
+                      <span className="animate-pulse">💸 Budgets werden geprüft…</span>
+                    </div>
+                  ) : (
+                    <OverBudgetList projects={overBudget} />
+                  ))}
                 {showCard("sleeping") &&
                   (sleeping === null ? (
                     <div className="card" style={{ display: "flex", alignItems: "center", justifyContent: "center", color: "var(--plum-soft)", fontWeight: 600, minHeight: 160 }}>
