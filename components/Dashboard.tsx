@@ -300,8 +300,8 @@ export default function Dashboard() {
             <button onClick={() => triggerExport("share")} className="chip" style={{ fontWeight: 700 }}>
               ✉️ Teilen
             </button>
-            {auth.enabled && auth.caps.includes("users.manage") && (
-              <a href="/admin" className="chip" style={{ textDecoration: "none", fontWeight: 700 }}>👥 Benutzerverwaltung</a>
+            {auth.enabled && ["users.manage", "roles.manage", "config.manage", "salary.manage", "liquidity.manage"].some((c) => auth.caps.includes(c)) && (
+              <a href="/admin" className="chip" style={{ textDecoration: "none", fontWeight: 700 }}>👥 Verwaltung</a>
             )}
             {auth.enabled && auth.user && (
               <>
