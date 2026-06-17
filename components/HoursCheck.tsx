@@ -70,7 +70,11 @@ export default function HoursCheck({ check, userName }: Props) {
             whiteSpace: "nowrap",
           }}
         >
-          {behind ? `⚠️ ${Math.abs(check.delta)} h unter Soll` : "✓ auf Kurs"}
+          {Math.abs(check.delta) <= TOLERANCE
+            ? "✓ Saldo ausgeglichen"
+            : behind
+              ? `⚠️ Saldo −${Math.abs(check.delta)} h`
+              : `↑ Saldo +${check.delta} h`}
         </span>
       </div>
       <p style={{ fontSize: 12.5, color: "var(--plum-soft)", fontWeight: 600, marginBottom: 16 }}>
@@ -92,9 +96,11 @@ export default function HoursCheck({ check, userName }: Props) {
         </div>
         <div>
           <span style={{ display: "block", fontFamily: "var(--font-heading)", fontWeight: 700, fontSize: 26, color: accent }}>
-            {check.delta > 0 ? "+" : ""}{check.delta} h
+            {check.delta > 0 ? "+" : check.delta < 0 ? "−" : ""}{Math.abs(check.delta)} h
           </span>
-          <span style={{ fontSize: 12, color: "var(--plum-soft)", fontWeight: 600 }}>Differenz</span>
+          <span style={{ fontSize: 12, color: "var(--plum-soft)", fontWeight: 600 }}>
+            Saldo bis heute{check.delta > TOLERANCE ? " (Überstunden)" : check.delta < -TOLERANCE ? " (Minusstunden)" : ""}
+          </span>
         </div>
       </div>
 
