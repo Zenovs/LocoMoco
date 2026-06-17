@@ -83,7 +83,7 @@ export default function OverBudgetList({ projects }: Props) {
                     ) : (
                       <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                         <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-                          <span style={{ fontSize: 11, color: "var(--plum-soft)", fontWeight: 700 }}>Alle Buchungen (grün = innerhalb Vorgabe, rot = darüber)</span>
+                          <span style={{ fontSize: 11, color: "var(--plum-soft)", fontWeight: 700 }}>Buchungen der letzten 12 Monate (grün = innerhalb Vorgabe, rot = darüber)</span>
                           {(det.overBudgetSince || det.overBeforeWindow) && (
                             <span style={{ fontSize: 11.5, fontWeight: 800, color: "#c0145a", background: "#fff0f5", border: "1.5px solid #ffd0e6", borderRadius: 999, padding: "2px 9px" }}>
                               🔴 Über Budget {det.overBeforeWindow ? `(schon vor ${det.from ? fmtDay(det.from) : "12 Mt."})` : `seit ${det.overBudgetSince ? fmtDay(det.overBudgetSince) : ""}`}
