@@ -6,6 +6,7 @@ export interface ProductivityResult {
   totalHours: number;
   targetHours: number | null; // Soll, Ferien/Krankheit bereits abgezogen
   absenceHours: number; // wegen Ferien/Krankheit vom Soll abgezogene Stunden
+  targetToDate: boolean; // true = Soll nur bis heute gerechnet (aktueller Monat)
   internalHours: number;
   productivityPct: number;
   label: "target" | "total"; // which denominator we used
@@ -50,7 +51,8 @@ export function calcProductivity(
   userId: number,
   year: number,
   month: number,
-  schedules: MocoSchedule[] = [] // Ferien/Krankheit
+  schedules: MocoSchedule[] = [], // Ferien/Krankheit
+  now: Date = new Date()
 ): ProductivityResult {
   const userActivities = activities.filter((a) => a.user.id === userId);
 
@@ -58,8 +60,10 @@ export function calcProductivity(
   const totalHours = userActivities.reduce((s, a) => s + a.hours, 0);
   const internalHours = totalHours - billableHours;
 
-  // Soll-Stunden tageweise, Ferien/Krankheit abgezogen (nur zur Anzeige).
-  const { target, absence } = calcTargetHours(employments, userId, year, month, schedules);
+  // Soll-Stunden tageweise, Ferien/Krankheit abgezogen (nur zur Anzeige). Im
+  // laufenden Monat nur bis heute, sonst der ganze Monat.
+  const isCurrentMonth = now.getFullYear() === year && now.getMonth() + 1 === month;
+  const { target, absence } = calcTargetHours(employments, userId, year, month, schedules, now);
 
   // Produktivität = verrechenbare ÷ ERFASSTE Stunden (Soll bleibt nur Anzeige).
   const denominator = totalHours || 1;
@@ -70,6 +74,7 @@ export function calcProductivity(
     totalHours: Math.round(totalHours * 10) / 10,
     targetHours: target !== null ? Math.round(target * 10) / 10 : null,
     absenceHours: Math.round(absence * 10) / 10,
+    targetToDate: isCurrentMonth && target !== null,
     internalHours: Math.round(internalHours * 10) / 10,
     productivityPct,
     label: "total",
@@ -81,7 +86,8 @@ function calcTargetHours(
   userId: number,
   year: number,
   month: number,
-  schedules: MocoSchedule[]
+  schedules: MocoSchedule[],
+  now: Date
 ): { target: number | null; absence: number } {
   const emp = findEmployment(employments, userId, year, month);
   if (!emp || (!emp.weekly_target_hours && !emp.pattern)) return { target: null, absence: 0 };
@@ -89,10 +95,13 @@ function calcTargetHours(
   const absent = absentFractions(schedules, userId);
   const pad = (n: number) => String(n).padStart(2, "0");
   const daysInMonth = new Date(year, month, 0).getDate();
+  // Laufender Monat: nur abgeschlossene Tage (bis gestern, heute läuft noch).
+  const isCurrentMonth = now.getFullYear() === year && now.getMonth() + 1 === month;
+  const lastDay = isCurrentMonth ? Math.max(0, now.getDate() - 1) : daysInMonth;
 
   let target = 0;
   let absence = 0;
-  for (let d = 1; d <= daysInMonth; d++) {
+  for (let d = 1; d <= lastDay; d++) {
     const date = new Date(year, month - 1, d);
     const exp = dailyExpected(emp, date);
     if (exp <= 0) continue; // kein Arbeitstag
