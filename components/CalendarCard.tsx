@@ -13,22 +13,47 @@ interface Props {
 const MONTHS = ["Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];
 const WD = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
 
-const STYLE: Record<DayStatus, { bg: string; br: string; dot: string; label: string }> = {
-  productive: { bg: "#effaf3", br: "#bfead2", dot: "#0a8a4a", label: "produktiv" },
-  low: { bg: "#fff7e8", br: "#ffe1a8", dot: "#c97a00", label: "wenig verrechenbar" },
-  missing: { bg: "#fff0f5", br: "#ffd0e6", dot: "#c0145a", label: "nichts erfasst" },
-  absence: { bg: "#eaf2fb", br: "#c5dcf5", dot: "#3a6ea5", label: "Ferien/Krankheit" },
-  off: { bg: "transparent", br: "var(--bar-bg)", dot: "transparent", label: "frei" },
-  future: { bg: "transparent", br: "var(--bar-bg)", dot: "transparent", label: "noch offen" },
+const BILL = "#0a8a4a"; // verrechenbar (erreichte Produktivität)
+const INTERN = "#ffcaa0"; // intern
+const TRACK = "var(--bar-bg)";
+
+const STYLE: Record<DayStatus, { tint: string; br: string; label: string; dot: string }> = {
+  productive: { tint: "rgba(10,138,74,.06)", br: "#bfead2", label: "Ziel erreicht", dot: "#0a8a4a" },
+  low: { tint: "rgba(201,122,0,.06)", br: "#ffe1a8", label: "unter Ziel", dot: "#c97a00" },
+  missing: { tint: "rgba(192,20,90,.05)", br: "#ffd0e6", label: "nichts erfasst", dot: "#c0145a" },
+  absence: { tint: "rgba(58,110,165,.07)", br: "#c5dcf5", label: "Ferien/Krankheit", dot: "#3a6ea5" },
+  off: { tint: "transparent", br: "var(--bar-bg)", label: "frei", dot: "transparent" },
+  future: { tint: "transparent", br: "var(--bar-bg)", label: "noch offen", dot: "transparent" },
 };
 
 function fmtFull(iso: string) {
   return new Date(iso + "T00:00:00").toLocaleDateString("de-CH", { weekday: "long", day: "numeric", month: "long" });
 }
 
+// Tages-Balken: Track = Soll, grün = verrechenbar, orange = intern, Linie = Ziel.
+function DayBar({ d }: { d: CalendarDay }) {
+  const base = d.soll > 0 ? d.soll : d.recorded;
+  if (base <= 0) return <div style={{ height: 8 }} />;
+  const pct = (h: number) => Math.min(100, Math.max(0, (h / base) * 100));
+  const billW = pct(d.billable);
+  const internW = pct(d.recorded - d.billable);
+  const goalLeft = d.goalBillable > 0 ? pct(d.goalBillable) : null;
+  return (
+    <div style={{ position: "relative", height: 9, borderRadius: 99, background: TRACK, overflow: "hidden", marginTop: "auto" }}>
+      <div style={{ position: "absolute", inset: 0, display: "flex" }}>
+        <div style={{ width: `${billW}%`, background: BILL }} />
+        <div style={{ width: `${internW}%`, background: INTERN }} />
+      </div>
+      {goalLeft !== null && (
+        <div title={`Ziel: ${d.goalBillable} h verrechenbar`} style={{ position: "absolute", top: -1, bottom: -1, left: `calc(${goalLeft}% - 1px)`, width: 2, background: "var(--plum)", borderRadius: 2 }} />
+      )}
+    </div>
+  );
+}
+
 export default function CalendarCard({ days, year, month, userName }: Props) {
   const [sel, setSel] = useState<string | null>(null);
-  const offset = days.length ? days[0].weekday : 0; // Leerzellen vor dem 1.
+  const offset = days.length ? days[0].weekday : 0;
   const selected = days.find((d) => d.date === sel) ?? null;
 
   return (
@@ -36,19 +61,9 @@ export default function CalendarCard({ days, year, month, userName }: Props) {
       <h2 style={{ fontSize: 18, color: "var(--plum)", marginBottom: 4, display: "flex", alignItems: "center", gap: 8 }}>
         🗓️ Kalender — {userName}
       </h2>
-      <p style={{ fontSize: 12.5, color: "var(--plum-soft)", fontWeight: 600, marginBottom: 14 }}>
-        {MONTHS[month - 1]} {year} · Farbe = wie produktiv der Tag war · Tag anklicken für Details
+      <p style={{ fontSize: 12.5, color: "var(--plum-soft)", fontWeight: 600, marginBottom: 12 }}>
+        {MONTHS[month - 1]} {year} · Balken je Tag: Länge = Soll, <b style={{ color: BILL }}>grün</b> = verrechenbar, <b style={{ color: "#c97a00" }}>orange</b> = intern, <b>│</b> = Produktivitätsziel · Tag anklicken für Details
       </p>
-
-      {/* Legende */}
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginBottom: 14 }}>
-        {(["productive", "low", "missing", "absence"] as DayStatus[]).map((s) => (
-          <span key={s} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11.5, fontWeight: 700, color: "var(--plum-soft)" }}>
-            <span style={{ width: 12, height: 12, borderRadius: 4, background: STYLE[s].bg, border: `1.5px solid ${STYLE[s].br}` }} />
-            {STYLE[s].label}
-          </span>
-        ))}
-      </div>
 
       {/* Wochentage */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 6, marginBottom: 6 }}>
@@ -67,23 +82,23 @@ export default function CalendarCard({ days, year, month, userName }: Props) {
             <button
               key={d.date}
               onClick={() => setSel(isSel ? null : d.date)}
-              title={`${st.label}${d.recorded ? ` · ${d.recorded} h` : ""}`}
+              title={`${st.label}${d.recorded ? ` · ${d.recorded} h erfasst, ${d.billablePct}% verrechenbar` : ""}`}
               style={{
-                aspectRatio: "1 / 1", minHeight: 46, borderRadius: 12, cursor: "pointer",
-                background: st.bg, border: `1.5px solid ${isSel ? "var(--hotpink)" : st.br}`,
+                minHeight: 62, borderRadius: 12, cursor: "pointer",
+                background: st.tint, border: `1.5px solid ${isSel ? "var(--hotpink)" : st.br}`,
                 boxShadow: isSel ? "0 0 0 2px var(--hotpink)" : "none",
-                display: "flex", flexDirection: "column", alignItems: "flex-start", justifyContent: "space-between",
+                display: "flex", flexDirection: "column", gap: 4,
                 padding: "6px 8px", textAlign: "left",
               }}
             >
-              <span style={{ fontWeight: 800, fontSize: 13, color: "var(--plum)" }}>{d.day}</span>
-              {d.recorded > 0 ? (
-                <span style={{ fontSize: 10.5, fontWeight: 800, color: st.dot }}>{d.billablePct}%</span>
-              ) : d.status === "absence" ? (
-                <span style={{ fontSize: 12 }}>🏖️</span>
-              ) : d.status === "missing" ? (
-                <span style={{ fontSize: 12 }}>⚠️</span>
-              ) : null}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+                <span style={{ fontWeight: 800, fontSize: 13, color: "var(--plum)" }}>{d.day}</span>
+                {d.recorded > 0 ? (
+                  <span style={{ fontSize: 10.5, fontWeight: 800, color: st.dot }}>{d.billablePct}%</span>
+                ) : d.status === "absence" ? <span style={{ fontSize: 11 }}>🏖️</span>
+                  : d.status === "missing" ? <span style={{ fontSize: 11 }}>⚠️</span> : null}
+              </div>
+              <DayBar d={d} />
             </button>
           );
         })}
@@ -94,11 +109,13 @@ export default function CalendarCard({ days, year, month, userName }: Props) {
         <div style={{ marginTop: 16, background: "var(--input-bg)", borderRadius: 14, padding: "14px 16px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 10 }}>
             <span style={{ fontWeight: 800, color: "var(--plum)", fontSize: 15 }}>{fmtFull(selected.date)}</span>
-            <span style={{ fontSize: 11.5, fontWeight: 800, color: STYLE[selected.status].dot, background: STYLE[selected.status].bg, border: `1.5px solid ${STYLE[selected.status].br}`, borderRadius: 999, padding: "3px 10px" }}>
+            <span style={{ fontSize: 11.5, fontWeight: 800, color: STYLE[selected.status].dot, border: `1.5px solid ${STYLE[selected.status].br}`, borderRadius: 999, padding: "3px 10px" }}>
               {STYLE[selected.status].label}
             </span>
             <span style={{ marginLeft: "auto", fontSize: 12.5, fontWeight: 600, color: "var(--plum-soft)" }}>
-              {selected.recorded} h erfasst{selected.soll > 0 ? ` · Soll ${selected.soll} h` : ""}{selected.recorded > 0 ? ` · ${selected.billablePct}% verrechenbar` : ""}
+              {selected.recorded} h erfasst{selected.soll > 0 ? ` / Soll ${selected.soll} h` : ""}
+              {selected.recorded > 0 ? ` · ${selected.billable} h verrechenbar (${selected.billablePct}%)` : ""}
+              {selected.goalBillable > 0 ? ` · Ziel ${selected.goalBillable} h` : ""}
             </span>
           </div>
           {selected.entries.length === 0 ? (
@@ -108,8 +125,8 @@ export default function CalendarCard({ days, year, month, userName }: Props) {
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {selected.entries.map((e, j) => (
-                <div key={j} style={{ display: "flex", gap: 10, alignItems: "flex-start", background: "var(--card-bg, #fff)", borderRadius: 10, padding: "8px 11px", border: "1px solid var(--bar-bg)" }}>
-                  <span style={{ width: 9, height: 9, borderRadius: 9, marginTop: 5, flexShrink: 0, background: e.billable ? "#0a8a4a" : "#c97a00" }} title={e.billable ? "verrechenbar" : "intern"} />
+                <div key={j} style={{ display: "flex", gap: 10, alignItems: "flex-start", background: "#fff", borderRadius: 10, padding: "8px 11px", border: "1px solid var(--bar-bg)" }}>
+                  <span style={{ width: 9, height: 9, borderRadius: 9, marginTop: 5, flexShrink: 0, background: e.billable ? BILL : "#c97a00" }} title={e.billable ? "verrechenbar" : "intern"} />
                   <span style={{ flex: 1 }}>
                     <span style={{ fontWeight: 700, color: "var(--plum)", fontSize: 13 }}>{e.project}</span>
                     {e.task && <span style={{ fontSize: 11.5, color: "var(--plum-soft)", fontWeight: 600 }}> · {e.task}</span>}

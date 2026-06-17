@@ -19,6 +19,8 @@ export interface CalendarDay {
   recorded: number;
   billable: number;
   billablePct: number;
+  goalBillable: number; // Ziel-verrechenbare Stunden = Schwelle% × Soll
+  thresholdPct: number; // Produktivitätsziel in %
   absenceFraction: number; // 0 / 0.5 / 1
   status: DayStatus;
   entries: CalendarEntry[];
@@ -108,6 +110,8 @@ export function calcCalendar(
       recorded: Math.round(recorded * 10) / 10,
       billable: Math.round(billable * 10) / 10,
       billablePct,
+      goalBillable: Math.round(soll * (thresholdPct / 100) * 10) / 10, // Ziel verrechenbar
+      thresholdPct,
       absenceFraction,
       status,
       entries,
