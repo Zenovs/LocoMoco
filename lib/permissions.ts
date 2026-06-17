@@ -22,6 +22,7 @@ export const CARDS = [
   { key: "sleeping", label: "Schläferprojekte" },
   { key: "coach", label: "Loco-Coach" },
   { key: "compare", label: "Monatsvergleich" },
+  { key: "kalender", label: "Kalender (Tagesübersicht)" },
   // Firmenweite Auswertungen (brauchen zusätzlich "Alle sehen" / data.all)
   { key: "gl.auslastung", label: "Auslastung & Verrechenbarkeit (Firma)" },
   { key: "gl.umsatz", label: "Umsatz-Cockpit" },
