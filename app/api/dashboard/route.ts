@@ -55,7 +55,8 @@ export async function GET(req: NextRequest) {
       employments,
       userId,
       year,
-      month
+      month,
+      schedules // Ferien/Krankheit vom Soll abziehen
     );
     const prevProductivity = calcProductivity(
       prevActivities,

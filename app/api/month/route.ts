@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { readConfig } from "@/lib/config";
-import { getActivities, getEmployments } from "@/lib/moco/client";
+import { getActivities, getEmployments, getSchedules } from "@/lib/moco/client";
 import { calcProductivity } from "@/lib/metrics/productivity";
 import { getMonthRange } from "@/lib/metrics/dates";
 import { scopedUserId } from "@/lib/access";
@@ -26,11 +26,12 @@ export async function GET(req: NextRequest) {
 
   try {
     const { from, to } = getMonthRange(year, month);
-    const [activities, employments] = await Promise.all([
+    const [activities, employments, schedules] = await Promise.all([
       getActivities(config, from, to, userId),
       getEmployments(config),
+      getSchedules(config, from, to, userId),
     ]);
-    const productivity = calcProductivity(activities, employments, userId, year, month);
+    const productivity = calcProductivity(activities, employments, userId, year, month, schedules);
     return NextResponse.json({ year, month, productivity });
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Unbekannter Fehler.";

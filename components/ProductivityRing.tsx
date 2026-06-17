@@ -132,7 +132,9 @@ export default function ProductivityRing({ productivity, delta, userName, month,
                 <span style={{ display: "block", fontFamily: "var(--font-heading)", fontWeight: 700, fontSize: 24, color: "var(--periwinkle)" }}>
                   {productivity.targetHours}h
                 </span>
-                <span style={{ fontSize: 12, color: "var(--plum-soft)", fontWeight: 600 }}>Soll (Pensum)</span>
+                <span style={{ fontSize: 12, color: "var(--plum-soft)", fontWeight: 600 }}>
+                  Soll (Pensum){productivity.absenceHours > 0 ? ` · −${productivity.absenceHours}h Ferien/Krankheit` : ""}
+                </span>
               </div>
             )}
             <div>
