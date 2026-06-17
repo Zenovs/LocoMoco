@@ -1,21 +1,45 @@
 "use client";
 
+import { useState } from "react";
 import type { OverBudgetProject } from "@/lib/metrics/overBudget";
 import { useIcon } from "./ThemeContext";
+
+interface Entry { date: string; task: string; description: string; hours: number; billable: boolean }
+interface Person { name: string; totalHours: number; billableHours: number; entries: Entry[] }
+type Detail = { loading: boolean; people: Person[] };
 
 interface Props {
   projects: OverBudgetProject[];
 }
 
+function fmtDay(iso: string) {
+  return new Date(iso + "T00:00:00").toLocaleDateString("de-CH", { weekday: "short", day: "numeric", month: "short" });
+}
+
 export default function OverBudgetList({ projects }: Props) {
   const ic = useIcon();
+  const [open, setOpen] = useState<number | null>(null);
+  const [details, setDetails] = useState<Record<number, Detail>>({});
+
+  function toggle(projectId: number) {
+    const isOpen = open === projectId;
+    setOpen(isOpen ? null : projectId);
+    if (!isOpen && !details[projectId]) {
+      setDetails((d) => ({ ...d, [projectId]: { loading: true, people: [] } }));
+      fetch(`/api/project-activities?projectId=${projectId}`)
+        .then((r) => r.json())
+        .then((d: { people?: Person[] }) => setDetails((prev) => ({ ...prev, [projectId]: { loading: false, people: d.people ?? [] } })))
+        .catch(() => setDetails((prev) => ({ ...prev, [projectId]: { loading: false, people: [] } })));
+    }
+  }
+
   return (
     <section className="card">
       <h2 style={{ fontSize: 18, color: "var(--plum)", marginBottom: 4 }}>
         {ic("overBudget")} Über Budget
       </h2>
       <p style={{ fontSize: 12.5, color: "var(--plum-soft)", fontWeight: 600, marginBottom: 20 }}>
-        mehr Stunden gebraucht als geplant
+        mehr Stunden gebraucht als geplant — Projekt anklicken für Details
       </p>
 
       {projects.length === 0 ? (
@@ -24,43 +48,68 @@ export default function OverBudgetList({ projects }: Props) {
         </p>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 11 }}>
-          {projects.map((p) => (
-            <div
-              key={p.projectId}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                gap: 12,
-                padding: "13px 14px",
-                borderRadius: 16,
-                background: "rgba(255,236,245,.7)",
-                border: "1.5px solid #ffd0e6",
-              }}
-            >
-              <div>
-                <b style={{ fontFamily: "var(--font-heading)", fontSize: 14 }}>{p.projectName}</b>
-                <span style={{ display: "block", fontSize: 12, color: "var(--plum-soft)", fontWeight: 600, marginTop: 2 }}>
-                  geplant {p.hoursPlanned}h · gebucht {p.hoursTotal}h · {p.progressPct}%
-                </span>
+          {projects.map((p) => {
+            const isOpen = open === p.projectId;
+            const det = details[p.projectId];
+            return (
+              <div key={p.projectId} style={{ borderRadius: 16, background: "rgba(255,236,245,.7)", border: "1.5px solid #ffd0e6", overflow: "hidden" }}>
+                <div
+                  onClick={() => toggle(p.projectId)}
+                  role="button"
+                  aria-expanded={isOpen}
+                  style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "13px 14px", cursor: "pointer" }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
+                    <span style={{ fontSize: 11, color: "#c0145a", transform: isOpen ? "rotate(90deg)" : "none", transition: "transform .15s" }}>▶</span>
+                    <div>
+                      <b style={{ fontFamily: "var(--font-heading)", fontSize: 14 }}>{p.projectName}</b>
+                      <span style={{ display: "block", fontSize: 12, color: "var(--plum-soft)", fontWeight: 600, marginTop: 2 }}>
+                        geplant {p.hoursPlanned}h · gebucht {p.hoursTotal}h · {p.progressPct}%
+                      </span>
+                    </div>
+                  </div>
+                  <div style={{ fontFamily: "var(--font-heading)", fontWeight: 700, fontSize: 15, color: "#e63970", background: "#fff", padding: "7px 12px", borderRadius: 999, whiteSpace: "nowrap", boxShadow: "0 4px 12px -4px rgba(230,57,112,.5)" }}>
+                    +{p.hoursOver}h
+                  </div>
+                </div>
+
+                {isOpen && (
+                  <div style={{ background: "#fff", borderTop: "1.5px solid #ffd0e6", padding: "12px 14px" }}>
+                    {!det || det.loading ? (
+                      <span style={{ fontSize: 12.5, color: "var(--plum-soft)", fontWeight: 600 }} className="animate-pulse">Lädt Buchungen…</span>
+                    ) : det.people.length === 0 ? (
+                      <span style={{ fontSize: 12.5, color: "var(--plum-soft)", fontWeight: 600 }}>Keine Buchungen im letzten Jahr (oder keine Berechtigung).</span>
+                    ) : (
+                      <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                        <span style={{ fontSize: 11, color: "var(--plum-soft)", fontWeight: 700 }}>Buchungen der letzten 12 Monate</span>
+                        {det.people.map((person, pi) => (
+                          <div key={pi}>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 6 }}>
+                              <b style={{ fontSize: 13.5, color: "var(--plum)" }}>{person.name}</b>
+                              <span style={{ fontSize: 12.5, fontWeight: 800, color: "var(--hotpink)" }}>{person.totalHours} h <span style={{ fontSize: 11, fontWeight: 600, color: "var(--plum-soft)" }}>({person.billableHours} h verr.)</span></span>
+                            </div>
+                            <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+                              {person.entries.map((e, ei) => (
+                                <div key={ei} style={{ display: "flex", gap: 9, alignItems: "flex-start", fontSize: 12.5 }}>
+                                  <span style={{ width: 7, height: 7, borderRadius: 7, marginTop: 5, flexShrink: 0, background: e.billable ? "#0a8a4a" : "#c97a00" }} title={e.billable ? "verrechenbar" : "intern"} />
+                                  <span style={{ fontWeight: 700, color: "var(--plum-soft)", whiteSpace: "nowrap", minWidth: 70 }}>{fmtDay(e.date)}</span>
+                                  <span style={{ flex: 1, fontWeight: 600, color: "var(--plum)" }}>
+                                    {e.task && <span style={{ color: "var(--plum-soft)" }}>{e.task}: </span>}
+                                    {e.description || <span style={{ fontStyle: "italic", color: "var(--plum-soft)" }}>ohne Beschreibung</span>}
+                                  </span>
+                                  <span style={{ fontWeight: 800, color: "var(--hotpink)", whiteSpace: "nowrap" }}>{e.hours} h</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
-              <div
-                style={{
-                  fontFamily: "var(--font-heading)",
-                  fontWeight: 700,
-                  fontSize: 15,
-                  color: "#e63970",
-                  background: "#fff",
-                  padding: "7px 12px",
-                  borderRadius: 999,
-                  whiteSpace: "nowrap",
-                  boxShadow: "0 4px 12px -4px rgba(230,57,112,.5)",
-                }}
-              >
-                +{p.hoursOver}h
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </section>

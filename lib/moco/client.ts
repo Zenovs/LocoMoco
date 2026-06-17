@@ -116,6 +116,24 @@ export async function getActivities(
   );
 }
 
+// Aktivitäten EINES Projekts (alle Mitarbeiter) im Zeitraum — für die
+// Über-Budget-Detailansicht (wer hat worauf gebucht).
+export async function getActivitiesByProject(
+  config: MocoConfig,
+  projectId: number,
+  from: string,
+  to: string
+): Promise<MocoActivity[]> {
+  const key = `activities-proj:${config.subdomain}:${projectId}:${from}:${to}`;
+  return cachedFetch(key, () =>
+    fetchAllPages<MocoActivity>(`${baseUrl(config.subdomain)}/activities`, config.apiKey, {
+      from,
+      to,
+      project_id: String(projectId),
+    })
+  );
+}
+
 export async function getProjects(
   config: MocoConfig
 ): Promise<MocoProject[]> {
