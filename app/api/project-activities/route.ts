@@ -27,6 +27,7 @@ export async function GET(req: NextRequest) {
     }
   }
 
+  try {
     // Budget (geplante Stunden) + Lebenszeit-Gesamtstunden aus der Liste, um den
     // Über-Budget-Zeitpunkt korrekt zu bestimmen (auch wenn er vor dem Fenster lag).
     const planned = Number(req.nextUrl.searchParams.get("planned") || 0);
