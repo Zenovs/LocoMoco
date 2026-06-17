@@ -29,6 +29,7 @@ interface DashboardData {
   nonBillable: NonBillableProject[];
   timeWasters: TimeWaster[];
   hoursCheck: HoursCheckResult;
+  calendar: CalendarDay[];
 }
 
 const MONTHS = [
@@ -60,8 +61,6 @@ export default function Dashboard() {
   const [sleeping, setSleeping] = useState<SleepingProject[] | null>(null);
   // Über Budget: separat/lazy (braucht teure Projekt-Reports)
   const [overBudget, setOverBudget] = useState<OverBudgetProject[] | null>(null);
-  // Kalender: separat/lazy
-  const [calendar, setCalendar] = useState<CalendarDay[] | null>(null);
 
   // Auth-Status (wer ist angemeldet, welche Freigaben/Karten)
   const [auth, setAuth] = useState<{
@@ -175,19 +174,6 @@ export default function Dashboard() {
       .then((r) => r.json())
       .then((d: { overBudget?: OverBudgetProject[] }) => { if (!cancelled) setOverBudget(d.overBudget ?? []); })
       .catch(() => { if (!cancelled) setOverBudget([]); });
-    return () => { cancelled = true; };
-  }, [selectedUserId, year, month, refreshTick, auth.enabled, auth.cards]);
-
-  // Kalender separat laden — nur wenn freigeschaltet.
-  useEffect(() => {
-    if (!selectedUserId) return;
-    if (auth.enabled && !auth.cards.includes("kalender")) { setCalendar([]); return; }
-    let cancelled = false;
-    setCalendar(null);
-    fetch(`/api/calendar?userId=${selectedUserId}&year=${year}&month=${month}`)
-      .then((r) => r.json())
-      .then((d: { days?: CalendarDay[] }) => { if (!cancelled) setCalendar(d.days ?? []); })
-      .catch(() => { if (!cancelled) setCalendar([]); });
     return () => { cancelled = true; };
   }, [selectedUserId, year, month, refreshTick, auth.enabled, auth.cards]);
 
@@ -455,16 +441,10 @@ export default function Dashboard() {
               </div>
             )}
 
-            {/* Kalender (Tagesübersicht) */}
-            {showCard("kalender") && (
+            {/* Kalender (Tagesübersicht) — kommt direkt aus dem Dashboard-Abruf */}
+            {showCard("kalender") && data.calendar && (
               <div style={{ marginTop: 22 }}>
-                {calendar === null ? (
-                  <div className="card" style={{ textAlign: "center", color: "var(--plum-soft)", fontWeight: 600, minHeight: 120, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <span className="animate-pulse">🗓️ Kalender wird geladen…</span>
-                  </div>
-                ) : (
-                  <CalendarCard days={calendar} year={year} month={month} userName={selectedUser.firstname} />
-                )}
+                <CalendarCard days={data.calendar} year={year} month={month} userName={selectedUser.firstname} />
               </div>
             )}
 

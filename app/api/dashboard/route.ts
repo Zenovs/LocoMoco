@@ -10,8 +10,10 @@ import { calcProductivity } from "@/lib/metrics/productivity";
 import { calcTopNonBillableProjects } from "@/lib/metrics/nonBillable";
 import { calcTimeWasters } from "@/lib/metrics/timeWasters";
 import { calcHoursCheck } from "@/lib/metrics/hoursCheck";
+import { calcCalendar } from "@/lib/metrics/calendar";
 import { addMonths, getMonthRange } from "@/lib/metrics/dates";
 import { scopedUserId } from "@/lib/access";
+import { readTargets } from "@/lib/targets";
 
 export async function GET(req: NextRequest) {
   const config = readConfig();
@@ -77,6 +79,10 @@ export async function GET(req: NextRequest) {
     // Erfassungs-Check: Soll bis heute vs. erfasst + vergessene Tage
     const hoursCheck = calcHoursCheck(activities, employments, userId, year, month, new Date(), schedules);
 
+    // Kalender direkt aus den schon geholten Daten — kein zweiter Abruf nötig.
+    const calendarThreshold = readTargets()[String(userId)] ?? 60;
+    const calendar = calcCalendar(activities, employments, schedules, userId, year, month, calendarThreshold);
+
     // "Über Budget" (/api/overbudget) und Schläferprojekte (/api/sleeping) laden
     // separat — beides braucht teure Projekt-Reports und ist nicht im kritischen
     // Pfad, damit der Mitarbeiterwechsel sofort reagiert.
@@ -87,6 +93,7 @@ export async function GET(req: NextRequest) {
       nonBillable,
       timeWasters,
       hoursCheck,
+      calendar,
     });
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Unbekannter Fehler.";
