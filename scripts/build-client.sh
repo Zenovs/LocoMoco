@@ -11,7 +11,10 @@ set -euo pipefail
 
 # Hüllen-Version. Bei jeder Änderung an LocoMocoClient.swift HOCHZÄHLEN — dann
 # holen sich installierte Clients das Update automatisch (via version.json).
-VERSION="${LOCO_CLIENT_VERSION:-5}"
+VERSION="${LOCO_CLIENT_VERSION:-6}"
+# Geheimer Geräte-Schlüssel — MUSS mit LOCO_CLIENT_KEY auf dem Server überein-
+# stimmen. Fehlt er, weist sich die App nicht aus (Browser-Sperre dann wirkungslos).
+CLIENT_KEY="${LOCO_CLIENT_KEY:-}"
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 SRC="$ROOT/scripts/LocoMocoClient.swift"
@@ -61,6 +64,7 @@ cat > "$APP/Contents/Info.plist" <<PLIST
   <key>CFBundleIdentifier</key><string>ch.wireon.locomoco.client</string>
   <key>CFBundleExecutable</key><string>LocoMoco</string>
   <key>CFBundleIconFile</key><string>AppIcon</string>
+  <key>LocoClientKey</key><string>${CLIENT_KEY}</string>
   <key>CFBundlePackageType</key><string>APPL</string>
   <key>CFBundleShortVersionString</key><string>1.${VERSION}</string>
   <key>CFBundleVersion</key><string>${VERSION}</string>

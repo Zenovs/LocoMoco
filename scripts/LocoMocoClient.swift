@@ -153,6 +153,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         webView = WKWebView(frame: frame, configuration: cfg)
         webView.appearance = NSAppearance(named: .aqua)
         if #available(macOS 13.3, *) { webView.isInspectable = true } // Safari → Entwickler → Loco Moco
+        // Geräte-Ausweis: geheimer Schlüssel im User-Agent (beim Build injiziert).
+        // Der Server lässt damit nur die App durch (Browser nur für Admin).
+        let key = (Bundle.main.object(forInfoDictionaryKey: "LocoClientKey") as? String) ?? ""
+        let ver = (Bundle.main.infoDictionary?["CFBundleVersion"] as? String) ?? "1"
+        if !key.isEmpty {
+            webView.customUserAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) LocoMocoClient/\(ver) LocoClient/\(key)"
+        }
         webView.navigationDelegate = self
         webView.autoresizingMask = [.width, .height]
         container.addSubview(webView)

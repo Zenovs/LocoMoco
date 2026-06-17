@@ -34,7 +34,17 @@ PORTAL_DIR="${LOCO_PORTAL_DIR:-/opt/locomoco/portal}"
 DL_DIR="${LOCO_DL_DIR:-/opt/locomoco/downloads}"
 mkdir -p "$PORTAL_DIR" "$DL_DIR"
 cp -f "$APP_DIR"/portal/* "$PORTAL_DIR"/ 2>/dev/null || true
-cp -f "$APP_DIR"/deploy/downloads/* "$DL_DIR"/ 2>/dev/null || true
+# Downloads spiegeln. ABER: liegt ein vom Admin platzierter, GESCHLÜSSELTER
+# Client (Marker-Datei .keyed) vor, NICHT mit dem schlüssellosen Repo-Paket
+# überschreiben (sonst greift die Geräte-Sperre nicht mehr).
+for f in "$APP_DIR"/deploy/downloads/*; do
+  base="$(basename "$f")"
+  if [ "$base" = "Loco-Moco-Mac.zip" ] && [ -f "$DL_DIR/.keyed" ]; then
+    echo "[deploy]   behalte geschlüsselten Client (.keyed-Marker)"
+    continue
+  fi
+  cp -f "$f" "$DL_DIR"/ 2>/dev/null || true
+done
 
 echo "[deploy] Dienst neu starten …"
 sudo systemctl restart locomoco

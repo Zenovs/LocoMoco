@@ -236,3 +236,39 @@ sudo ufw allow from 192.168.0.0/16 to any port 443 proto tcp
 ```
 Danach erreichen Browser die App unter `https://locomoco.intern`. Der Mac-Client
 kann ebenfalls darauf zeigen (Menü Ablage → Server ändern → `https://locomoco.intern`).
+
+## 13. Nur-App-Sperre (Browser blockieren, ausser Admin)
+
+Standardmässig kann jeder im LAN die App im Browser öffnen (Login vorausgesetzt).
+Damit **nur die installierte App** Zugriff hat — **ausser dem Admin**, der auch im
+Browser darf — gibt es eine Geräte-Sperre über einen geheimen Schlüssel.
+
+**So aktivierst du sie:**
+
+1. Schlüssel erzeugen (geheim halten, NICHT ins Git):
+   ```bash
+   openssl rand -hex 16        # z. B. 4f9c…  -> merken
+   ```
+2. Auf dem Server in den Dienst eintragen (`/etc/systemd/system/locomoco.service`,
+   im `[Service]`-Block) und neu starten:
+   ```
+   Environment=LOCO_CLIENT_KEY=<dein-schlüssel>
+   ```
+   ```bash
+   sudo systemctl daemon-reload && sudo systemctl restart locomoco
+   ```
+   Ab jetzt: Browser → nur Admin; App ohne passenden Schlüssel → gesperrt.
+3. Auf einem Mac den Client **mit demselben Schlüssel** bauen und auf den Server
+   legen (umgeht das schlüssellose Repo-Paket):
+   ```bash
+   LOCO_CLIENT_KEY=<dein-schlüssel> scripts/build-client.sh
+   scp dist/Loco-Moco-Mac.zip locomoco@<SERVER-IP>:/opt/locomoco/downloads/
+   ssh locomoco@<SERVER-IP> 'touch /opt/locomoco/downloads/.keyed'   # Deploy überschreibt ihn nicht mehr
+   ```
+4. Alle Mitarbeitenden installieren den Client neu (curl-Einzeiler vom Portal).
+
+> Der Admin (Rolle `admin`) kommt immer auch im Browser rein. Hinweis: Der
+> Schlüssel steckt im verteilten App-Paket — das ist ein starker Riegel gegen
+> Browser-Zugriff, aber kein kryptografischer Schutz gegen jemanden, der die App
+> auseinandernimmt. In Kombination mit Login + LAN-only ist das für intern solide.
+> Ist `LOCO_CLIENT_KEY` nicht gesetzt, ist die Sperre aus (wie bisher).
