@@ -38,11 +38,12 @@ export default function CompanySection({
     "kd.wirtschaft", "kd.rangliste",
   ];
   const companyEnabled = companyKeys.some(showCard);
-  // Karte freigeschaltet UND die nötige Sicht-Berechtigung vorhanden. So
-  // verschwindet die Karte, wenn die Lohn-/Liquiditäts-Stufe auf "ausblenden"
-  // (keine Ansicht) steht — auch beim Admin.
-  const econEnabled = showCard("hr.wirtschaftlichkeit") && hasCap("data.salary");
-  const liquidityEnabled = showCard("gl.liquiditaet") && hasCap("data.liquidity");
+  const econEnabled = showCard("hr.wirtschaftlichkeit");
+  const liquidityEnabled = showCard("gl.liquiditaet");
+  // Sicht-Berechtigung: fehlt sie (Stufe "ausblenden"), bleibt die Karte da,
+  // die Werte werden aber geschwärzt (nicht abgerufen). Gilt auch für den Admin.
+  const econVisible = hasCap("data.salary");
+  const liquidityVisible = hasCap("data.liquidity");
   const anyEnabled = companyEnabled || econEnabled || liquidityEnabled;
 
   const [data, setData] = useState<CompanyReport | null>(null);
@@ -71,7 +72,7 @@ export default function CompanySection({
   }, [year, month, refreshTick, companyEnabled]);
 
   useEffect(() => {
-    if (!econEnabled) return;
+    if (!econEnabled || !econVisible) return; // geschwärzt -> gar nicht abrufen
     let cancelled = false;
     setEcon(null);
     fetch(`/api/wirtschaftlichkeit?year=${year}&month=${month}`)
@@ -79,10 +80,10 @@ export default function CompanySection({
       .then((d: { people?: PersonEconomics[] }) => { if (!cancelled) setEcon(d.people ?? []); })
       .catch(() => { if (!cancelled) setEcon([]); });
     return () => { cancelled = true; };
-  }, [year, month, refreshTick, econEnabled]);
+  }, [year, month, refreshTick, econEnabled, econVisible]);
 
   useEffect(() => {
-    if (!liquidityEnabled) return;
+    if (!liquidityEnabled || !liquidityVisible) return; // geschwärzt -> gar nicht abrufen
     let cancelled = false;
     setLiquidity(null);
     fetch(`/api/liquidity`)
@@ -90,7 +91,7 @@ export default function CompanySection({
       .then((d: { released: boolean; months: Record<string, { balance: number; income: number; expense: number }> }) => { if (!cancelled) setLiquidity(d); })
       .catch(() => { if (!cancelled) setLiquidity({ released: false, months: {} }); });
     return () => { cancelled = true; };
-  }, [year, month, refreshTick, liquidityEnabled]);
+  }, [year, month, refreshTick, liquidityEnabled, liquidityVisible]);
 
   if (!anyEnabled) return null;
 
@@ -137,11 +138,39 @@ export default function CompanySection({
           </>
         )}
 
-        {/* Sensible Karten — eigene Endpunkte, unabhängig vom Firmen-Fetch */}
-        {showCard("hr.wirtschaftlichkeit") && <EconomicsCard rows={econ} />}
-        {showCard("gl.liquiditaet") && <LiquidityCard data={liquidity} />}
+        {/* Sensible Karten — eigene Endpunkte, unabhängig vom Firmen-Fetch.
+            Ohne Sicht-Berechtigung ("ausblenden") wird die Karte geschwärzt. */}
+        {econEnabled && (econVisible
+          ? <EconomicsCard rows={econ} />
+          : <RedactedCard icon="💼" title="Wirtschaftlichkeit pro Mitarbeiter" note="Löhne für dich ausgeblendet" />)}
+        {liquidityEnabled && (liquidityVisible
+          ? <LiquidityCard data={liquidity} />
+          : <RedactedCard icon="💧" title="Liquidität" note="Liquidität für dich ausgeblendet" />)}
       </div>
     </section>
+  );
+}
+
+// Geschwärzte Karte: Struktur sichtbar, Werte unkenntlich (gar nicht geladen).
+function RedactedCard({ icon, title, note }: { icon: string; title: string; note: string }) {
+  return (
+    <div className="card" style={{ position: "relative", overflow: "hidden" }}>
+      <CardTitle icon={icon} title={title} hint="🔒 ausgeblendet" />
+      <div style={{ display: "flex", flexDirection: "column", gap: 10, filter: "blur(2px)", userSelect: "none", pointerEvents: "none", marginTop: 4 }} aria-hidden>
+        {Array.from({ length: 6 }).map((_, i) => (
+          <div key={i} style={{ display: "flex", gap: 12, alignItems: "center" }}>
+            <div style={{ height: 14, width: `${28 + (i % 3) * 14}%`, borderRadius: 6, background: "#15101c" }} />
+            <div style={{ marginLeft: "auto", height: 14, width: 64, borderRadius: 6, background: "#15101c" }} />
+            <div style={{ height: 14, width: 64, borderRadius: 6, background: "#15101c" }} />
+          </div>
+        ))}
+      </div>
+      <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, background: "#15101c", color: "#fff", fontWeight: 700, fontSize: 13, padding: "9px 17px", borderRadius: 999, boxShadow: "0 6px 18px -6px rgba(0,0,0,.5)" }}>
+          🔒 {note}
+        </div>
+      </div>
+    </div>
   );
 }
 
