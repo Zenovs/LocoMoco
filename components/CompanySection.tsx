@@ -153,18 +153,56 @@ function EconomicsCard({ rows }: { rows: PersonEconomics[] | null }) {
       </div>
     );
   }
+  return <EconomicsCardInner rows={rows} />;
+}
+
+function EconomicsCardInner({ rows }: { rows: PersonEconomics[] }) {
+  // Umschalter: DB auf Basis "produziert" (verr. Std × Verkaufssatz) oder
+  // "fakturiert" (anteiliger echter Rechnungsumsatz). Sortiert nach gewähltem DB.
+  const [basis, setBasis] = useState<"produziert" | "fakturiert">("produziert");
+  const db = (e: PersonEconomics) => (basis === "produziert" ? e.dbProduced : e.dbInvoiced);
+  const sorted = [...rows].sort((a, b) => db(b) - db(a));
+
   return (
     <div className="card">
-      <CardTitle icon="💼" title="Wirtschaftlichkeit pro Mitarbeiter" hint="Kosten vs. erwirtschaftet diesen Monat · DB = erwirtschaftet − Kosten" />
+      <CardTitle
+        icon="💼"
+        title="Wirtschaftlichkeit pro Mitarbeiter"
+        hint={
+          basis === "produziert"
+            ? "DB = produziert − Kosten · produziert = verr. Std × Verkaufssatz"
+            : "DB = fakturiert − Kosten · fakturiert = anteiliger echter Rechnungsumsatz"
+        }
+      />
+      <div style={{ display: "flex", gap: 6, marginBottom: 12, flexWrap: "wrap" }}>
+        {(["produziert", "fakturiert"] as const).map((b) => (
+          <button
+            key={b}
+            onClick={() => setBasis(b)}
+            style={{
+              fontSize: 12.5,
+              fontWeight: 700,
+              padding: "6px 13px",
+              borderRadius: 999,
+              cursor: "pointer",
+              border: `1.5px solid ${basis === b ? "var(--hotpink)" : "var(--chip-border)"}`,
+              background: basis === b ? "var(--hotpink)" : "transparent",
+              color: basis === b ? "#fff" : "var(--plum-soft)",
+            }}
+          >
+            DB nach {b}
+          </button>
+        ))}
+      </div>
       <Table
-        head={["Mitarbeiter", "Kosten/Mt.", "produziert", "fakturiert", "DB (prod.)", "Produkt."]}
+        head={["Mitarbeiter", "Kosten/Mt.", "produziert", "fakturiert", basis === "produziert" ? "DB (prod.)" : "DB (fakt.)", "Produkt."]}
         align={["left", "right", "right", "right", "right", "right"]}
-        rows={rows.map((e) => [
+        rows={sorted.map((e) => [
           e.name,
           chf(e.costMonthly),
-          <span key="p" title={`${e.billableHours} h × ${e.sellRate} CHF/h`}>{chf(e.producedRevenue)}</span>,
-          chf(e.invoicedRevenue),
-          <span key="db" style={{ fontWeight: 800, color: e.dbProduced >= 0 ? "#0a8a4a" : "#c0145a" }}>{chfSigned(e.dbProduced)}</span>,
+          <span key="p" title={`${e.billableHours} h × ${e.sellRate} CHF/h`} style={{ fontWeight: basis === "produziert" ? 700 : 400, opacity: basis === "produziert" ? 1 : 0.6 }}>{chf(e.producedRevenue)}</span>,
+          <span key="f" style={{ fontWeight: basis === "fakturiert" ? 700 : 400, opacity: basis === "fakturiert" ? 1 : 0.6 }}>{chf(e.invoicedRevenue)}</span>,
+          <span key="db" style={{ fontWeight: 800, color: db(e) >= 0 ? "#0a8a4a" : "#c0145a" }}>{chfSigned(db(e))}</span>,
           p(e.productivityPct),
         ])}
       />
