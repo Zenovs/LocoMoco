@@ -6,6 +6,7 @@ import type {
   MocoOffer,
   MocoProject,
   MocoProjectReport,
+  MocoProjectTask,
   MocoSchedule,
   MocoUser,
 } from "@/types/moco";
@@ -131,6 +132,17 @@ export async function getActivitiesByProject(
       to,
       project_id: String(projectId),
     })
+  );
+}
+
+// Tätigkeiten/Leistungen eines Projekts (inkl. Stunden-Budget je Leistung).
+export async function getProjectTasks(
+  config: MocoConfig,
+  projectId: number
+): Promise<MocoProjectTask[]> {
+  const key = `project-tasks:${config.subdomain}:${projectId}`;
+  return cachedFetch(key, () =>
+    fetchAllPages<MocoProjectTask>(`${baseUrl(config.subdomain)}/projects/${projectId}/tasks`, config.apiKey).catch(() => [])
   );
 }
 

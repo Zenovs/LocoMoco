@@ -6,7 +6,8 @@ import { useIcon } from "./ThemeContext";
 
 interface Entry { date: string; task: string; description: string; hours: number; billable: boolean }
 interface Person { name: string; totalHours: number; billableHours: number; entries: Entry[] }
-type Detail = { loading: boolean; people: Person[]; overBudgetSince?: string | null; overBeforeWindow?: boolean; from?: string };
+interface TaskSum { name: string; budget: number | null; actual: number }
+type Detail = { loading: boolean; people: Person[]; tasks?: TaskSum[]; overBudgetSince?: string | null; overBeforeWindow?: boolean; from?: string };
 
 interface Props {
   projects: OverBudgetProject[];
@@ -28,8 +29,8 @@ export default function OverBudgetList({ projects }: Props) {
       setDetails((d) => ({ ...d, [p.projectId]: { loading: true, people: [] } }));
       fetch(`/api/project-activities?projectId=${p.projectId}&planned=${p.hoursPlanned}&total=${p.hoursTotal}`)
         .then((r) => r.json())
-        .then((d: { people?: Person[]; overBudgetSince?: string | null; overBeforeWindow?: boolean; from?: string }) =>
-          setDetails((prev) => ({ ...prev, [p.projectId]: { loading: false, people: d.people ?? [], overBudgetSince: d.overBudgetSince, overBeforeWindow: d.overBeforeWindow, from: d.from } })))
+        .then((d: { people?: Person[]; tasks?: TaskSum[]; overBudgetSince?: string | null; overBeforeWindow?: boolean; from?: string }) =>
+          setDetails((prev) => ({ ...prev, [p.projectId]: { loading: false, people: d.people ?? [], tasks: d.tasks ?? [], overBudgetSince: d.overBudgetSince, overBeforeWindow: d.overBeforeWindow, from: d.from } })))
         .catch(() => setDetails((prev) => ({ ...prev, [p.projectId]: { loading: false, people: [] } })));
     }
   }
@@ -90,6 +91,39 @@ export default function OverBudgetList({ projects }: Props) {
                             </span>
                           )}
                         </div>
+
+                        {/* Projekt-Vorgabe gesamt */}
+                        <div style={{ display: "flex", gap: 22, flexWrap: "wrap", background: "var(--input-bg)", borderRadius: 12, padding: "11px 15px" }}>
+                          <span><b style={{ fontFamily: "var(--font-heading)", fontSize: 18, color: "var(--periwinkle)" }}>{p.hoursPlanned} h</b> <span style={{ fontSize: 11.5, color: "var(--plum-soft)", fontWeight: 600 }}>Vorgabe (geplant)</span></span>
+                          <span><b style={{ fontFamily: "var(--font-heading)", fontSize: 18, color: "var(--plum)" }}>{p.hoursTotal} h</b> <span style={{ fontSize: 11.5, color: "var(--plum-soft)", fontWeight: 600 }}>gebucht</span></span>
+                          <span><b style={{ fontFamily: "var(--font-heading)", fontSize: 18, color: "#c0145a" }}>+{p.hoursOver} h</b> <span style={{ fontSize: 11.5, color: "var(--plum-soft)", fontWeight: 600 }}>über ({p.progressPct}%)</span></span>
+                        </div>
+
+                        {/* Vorgabe vs. gebucht pro Aufgabe */}
+                        {det.tasks && det.tasks.length > 0 && (
+                          <div>
+                            <span style={{ fontSize: 11, color: "var(--plum-soft)", fontWeight: 700 }}>Pro Aufgabe — Vorgabe vs. gebucht</span>
+                            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5, marginTop: 6 }}>
+                              <thead><tr>{["Aufgabe", "Vorgabe", "gebucht", ""].map((h, i) => (
+                                <th key={i} style={{ textAlign: i === 0 ? "left" : "right", padding: "5px 8px", fontSize: 10.5, fontWeight: 800, textTransform: "uppercase", color: "var(--plum-soft)", borderBottom: "1.5px solid var(--bar-bg)" }}>{h}</th>
+                              ))}</tr></thead>
+                              <tbody>
+                                {det.tasks.map((t, ti) => {
+                                  const over = t.budget != null && t.actual > t.budget;
+                                  return (
+                                    <tr key={ti}>
+                                      <td style={{ padding: "6px 8px", fontWeight: 600, color: "var(--plum)" }}>{t.name}</td>
+                                      <td style={{ padding: "6px 8px", textAlign: "right", color: "var(--plum-soft)", fontWeight: 700 }}>{t.budget != null ? `${t.budget} h` : "—"}</td>
+                                      <td style={{ padding: "6px 8px", textAlign: "right", fontWeight: 800, color: over ? "#c0145a" : "var(--plum)" }}>{t.actual} h</td>
+                                      <td style={{ padding: "6px 8px", textAlign: "right", fontWeight: 800, color: "#c0145a", whiteSpace: "nowrap" }}>{over ? `+${Math.round((t.actual - (t.budget ?? 0)) * 10) / 10} h` : ""}</td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
+
                         {det.people.map((person, pi) => (
                           <div key={pi}>
                             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 6 }}>

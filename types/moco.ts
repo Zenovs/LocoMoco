@@ -44,6 +44,15 @@ export interface MocoTask {
   billable: boolean;
 }
 
+// Projekt-Tätigkeit (Leistung) mit optionalem Stunden-Budget (Vorgabe).
+export interface MocoProjectTask {
+  id: number;
+  name: string;
+  budget?: number | null; // Vorgabe-Stunden, falls pro Leistung budgetiert
+  billable?: boolean;
+  active?: boolean;
+}
+
 export interface MocoActivity {
   id: number;
   date: string; // YYYY-MM-DD

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { readConfig } from "@/lib/config";
-import { getActivitiesByProject } from "@/lib/moco/client";
+import { getActivitiesByProject, getProjectReport, getProjectTasks } from "@/lib/moco/client";
 import { toISODate, subtractDays } from "@/lib/metrics/dates";
 import { currentUser, hasCapability } from "@/lib/access";
 import { authEnabled } from "@/lib/session";
@@ -78,7 +78,30 @@ export async function GET(req: NextRequest) {
       }))
       .sort((a, b) => b.totalHours - a.totalHours);
 
-    return NextResponse.json({ people, from, to, overBudgetSince, overBeforeWindow });
+    // Vorgabe vs. gebucht je Aufgabe: Budget aus den Projekt-Tätigkeiten,
+    // Ist-Stunden (Lebenszeit) aus dem Report (costs_by_task).
+    const [report, projectTasks] = await Promise.all([
+      getProjectReport(config, projectId).catch(() => null),
+      getProjectTasks(config, projectId),
+    ]);
+    const taskById = new Map<number, { name: string; budget: number | null; actual: number }>();
+    for (const t of projectTasks) taskById.set(t.id, { name: t.name, budget: t.budget ?? null, actual: 0 });
+    for (const c of report?.costs_by_task ?? []) {
+      const e = taskById.get(c.id) ?? { name: c.name, budget: null, actual: 0 };
+      e.actual = c.hours;
+      if (!e.name) e.name = c.name;
+      taskById.set(c.id, e);
+    }
+    const tasks = [...taskById.values()]
+      .filter((t) => t.actual > 0 || (t.budget ?? 0) > 0)
+      .map((t) => ({
+        name: t.name,
+        budget: t.budget != null ? Math.round(t.budget * 10) / 10 : null,
+        actual: Math.round(t.actual * 10) / 10,
+      }))
+      .sort((a, b) => b.actual - a.actual);
+
+    return NextResponse.json({ people, tasks, from, to, overBudgetSince, overBeforeWindow });
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Unbekannter Fehler.";
     return NextResponse.json({ error: msg }, { status: 502 });
