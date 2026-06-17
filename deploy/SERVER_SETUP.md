@@ -249,23 +249,26 @@ Browser darf — gibt es eine Geräte-Sperre über einen geheimen Schlüssel.
    ```bash
    openssl rand -hex 16        # z. B. 4f9c…  -> merken
    ```
-2. Auf dem Server in den Dienst eintragen (`/etc/systemd/system/locomoco.service`,
-   im `[Service]`-Block) und neu starten:
-   ```
-   Environment=LOCO_CLIENT_KEY=<dein-schlüssel>
-   ```
+2. **Auf dem Server** als Umgebungsvariable setzen (systemd-Drop-in, sauberer als
+   die Unit zu editieren) und neu starten:
    ```bash
+   sudo mkdir -p /etc/systemd/system/locomoco.service.d
+   printf '[Service]\nEnvironment=LOCO_CLIENT_KEY=<dein-schlüssel>\n' | sudo tee /etc/systemd/system/locomoco.service.d/clientkey.conf
    sudo systemctl daemon-reload && sudo systemctl restart locomoco
    ```
    Ab jetzt: Browser → nur Admin; App ohne passenden Schlüssel → gesperrt.
-3. Auf einem Mac den Client **mit demselben Schlüssel** bauen und auf den Server
-   legen (umgeht das schlüssellose Repo-Paket):
+3. **Auf deinem Mac** (im Repo) den Client mit demselben Schlüssel bauen:
    ```bash
-   LOCO_CLIENT_KEY=<dein-schlüssel> scripts/build-client.sh
-   scp dist/Loco-Moco-Mac.zip locomoco@<SERVER-IP>:/opt/locomoco/downloads/
-   ssh locomoco@<SERVER-IP> 'touch /opt/locomoco/downloads/.keyed'   # Deploy überschreibt ihn nicht mehr
+   LOCO_CLIENT_KEY=<dein-schlüssel> bash scripts/build-client.sh   # -> dist/Loco-Moco-Mac.zip (geschlüsselt, NICHT im Repo)
+   scp dist/Loco-Moco-Mac.zip <DEIN-SSH-USER>@<SERVER-IP>:/tmp/    # dein Login-User, nicht locomoco
    ```
-4. Alle Mitarbeitenden installieren den Client neu (curl-Einzeiler vom Portal).
+4. **Wieder auf dem Server** den Client an seinen Platz legen + Marker setzen:
+   ```bash
+   sudo cp /tmp/Loco-Moco-Mac.zip /opt/locomoco/downloads/Loco-Moco-Mac.zip
+   sudo chmod 644 /opt/locomoco/downloads/Loco-Moco-Mac.zip
+   sudo touch /opt/locomoco/downloads/.keyed     # Auto-Deploy überschreibt ihn nicht mehr
+   ```
+5. Alle Mitarbeitenden installieren den Client neu (curl-Einzeiler vom Portal).
 
 > Der Admin (Rolle `admin`) kommt immer auch im Browser rein. Hinweis: Der
 > Schlüssel steckt im verteilten App-Paket — das ist ein starker Riegel gegen

@@ -87,16 +87,22 @@ codesign --force --deep -s - "$APP" >/dev/null 2>&1 || true
 cd "$DIST"
 ditto -c -k --sequesterRsrc --keepParent "Loco Moco.app" "$ZIP"
 
-# 6) Ins Repo publizieren: ZIP + version.json (Server liefert deploy/downloads aus).
-#    Beim Deploy gespiegelt nach /opt/locomoco/downloads -> Clients sehen das Update.
-mkdir -p "$PUBLISH"
-cp -f "$ZIP" "$PUBLISH/Loco-Moco-Mac.zip"
-cat > "$PUBLISH/version.json" <<JSON
+# 6) Ins Repo publizieren — NUR die schlüssellose Variante. Ein GESCHLÜSSELTER
+#    Build (CLIENT_KEY gesetzt) darf nie ins Repo (Schlüssel-Leck); der bleibt
+#    nur in dist/ und wird vom Admin manuell auf den Server gelegt.
+if [ -z "$CLIENT_KEY" ]; then
+  mkdir -p "$PUBLISH"
+  cp -f "$ZIP" "$PUBLISH/Loco-Moco-Mac.zip"
+  cat > "$PUBLISH/version.json" <<JSON
 { "version": ${VERSION}, "url": "/downloads/Loco-Moco-Mac.zip" }
 JSON
+  PUBNOTE="$PUBLISH/Loco-Moco-Mac.zip + version.json"
+else
+  PUBNOTE="(geschlüsselt — NICHT ins Repo; manuell auf den Server legen)"
+fi
 
 echo "✅ Fertig (v${VERSION}):"
 echo "   App:      $APP"
 echo "   ZIP:      $ZIP"
-echo "   Publish:  $PUBLISH/Loco-Moco-Mac.zip + version.json"
+echo "   Publish:  $PUBNOTE"
 echo "   → committen & pushen, dann ziehen sich Clients das Update automatisch."
