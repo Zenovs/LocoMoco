@@ -1,11 +1,13 @@
 "use client";
 
 import type { HoursCheckResult } from "@/lib/metrics/hoursCheck";
+import type { SaldoResult } from "@/lib/metrics/saldo";
 import { useIcon } from "./ThemeContext";
 
 interface Props {
   check: HoursCheckResult;
   userName: string;
+  cumulative?: SaldoResult | null; // kumuliertes Saldo seit Jahresbeginn
 }
 
 const TOLERANCE = 1; // h — kleine Abweichungen nicht anmahnen
@@ -24,7 +26,7 @@ function fmtFull(iso: string): string {
   });
 }
 
-export default function HoursCheck({ check, userName }: Props) {
+export default function HoursCheck({ check, userName, cumulative }: Props) {
   const ic = useIcon();
   if (!check.hasTarget) {
     return (
@@ -80,6 +82,26 @@ export default function HoursCheck({ check, userName }: Props) {
       <p style={{ fontSize: 12.5, color: "var(--plum-soft)", fontWeight: 600, marginBottom: 16 }}>
         {check.isCurrentMonth ? "Soll bis" : "Soll ganzer Monat bis"} {fmtFull(check.asOf)} · erfasste vs. erwartete Stunden
       </p>
+
+      {cumulative && (() => {
+        const s = cumulative.saldo;
+        const plus = s > TOLERANCE, minus = s < -TOLERANCE;
+        const c = minus ? "#c0145a" : plus ? "#0a7c3e" : "var(--plum-soft)";
+        const b = minus ? "#fff0f5" : plus ? "#effaf3" : "var(--input-bg)";
+        const bo = minus ? "#ffd0e6" : plus ? "#bfead2" : "var(--chip-border)";
+        return (
+          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", background: b, border: `1.5px solid ${bo}`, borderRadius: 12, padding: "10px 14px", marginBottom: 16 }}>
+            <span style={{ fontSize: 13, fontWeight: 800, color: "var(--plum)" }}>📊 Kumuliertes Saldo</span>
+            <span style={{ fontFamily: "var(--font-heading)", fontWeight: 800, fontSize: 22, color: c }}>
+              {s > 0 ? "+" : s < 0 ? "−" : ""}{Math.abs(s)} h
+            </span>
+            <span style={{ fontSize: 12.5, fontWeight: 700, color: c }}>{minus ? "Minusstunden" : plus ? "Überstunden" : "ausgeglichen"}</span>
+            <span style={{ marginLeft: "auto", fontSize: 11.5, fontWeight: 600, color: "var(--plum-soft)" }}>
+              seit {fmtFull(cumulative.from)} · {cumulative.recorded} h erfasst / Soll {cumulative.soll} h
+            </span>
+          </div>
+        );
+      })()}
 
       <div style={{ display: "flex", gap: 30, flexWrap: "wrap", marginBottom: check.missingDays.length ? 18 : 0 }}>
         <div>

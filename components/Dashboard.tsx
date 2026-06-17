@@ -8,6 +8,7 @@ import type { OverBudgetProject } from "@/lib/metrics/overBudget";
 import type { SleepingProject } from "@/lib/metrics/sleeping";
 import type { TimeWaster } from "@/lib/metrics/timeWasters";
 import type { HoursCheckResult } from "@/lib/metrics/hoursCheck";
+import type { SaldoResult } from "@/lib/metrics/saldo";
 import { buildAdvice } from "@/lib/advice";
 import ProductivityRing from "./ProductivityRing";
 import NonBillableChart from "./NonBillableChart";
@@ -61,6 +62,8 @@ export default function Dashboard() {
   const [sleeping, setSleeping] = useState<SleepingProject[] | null>(null);
   // Über Budget: separat/lazy (braucht teure Projekt-Reports)
   const [overBudget, setOverBudget] = useState<OverBudgetProject[] | null>(null);
+  // Kumuliertes Saldo (seit Jahresbeginn) — separat/lazy
+  const [cumSaldo, setCumSaldo] = useState<SaldoResult | null>(null);
 
   // Auth-Status (wer ist angemeldet, welche Freigaben/Karten)
   const [auth, setAuth] = useState<{
@@ -174,6 +177,19 @@ export default function Dashboard() {
       .then((r) => r.json())
       .then((d: { overBudget?: OverBudgetProject[] }) => { if (!cancelled) setOverBudget(d.overBudget ?? []); })
       .catch(() => { if (!cancelled) setOverBudget([]); });
+    return () => { cancelled = true; };
+  }, [selectedUserId, year, month, refreshTick, auth.enabled, auth.cards]);
+
+  // Kumuliertes Saldo (seit Jahresbeginn) — nur wenn Erfassungs-Check sichtbar.
+  useEffect(() => {
+    if (!selectedUserId) return;
+    if (auth.enabled && !auth.cards.includes("hoursCheck")) { setCumSaldo(null); return; }
+    let cancelled = false;
+    setCumSaldo(null);
+    fetch(`/api/saldo?userId=${selectedUserId}&year=${year}&month=${month}`)
+      .then((r) => r.json())
+      .then((d: SaldoResult & { error?: string }) => { if (!cancelled && !d.error) setCumSaldo(d); })
+      .catch(() => {});
     return () => { cancelled = true; };
   }, [selectedUserId, year, month, refreshTick, auth.enabled, auth.cards]);
 
@@ -424,7 +440,7 @@ export default function Dashboard() {
             {/* Erfassungs-Check: Soll bis heute vs. erfasst + vergessene Tage */}
             {showCard("hoursCheck") && data.hoursCheck && (
               <div style={{ marginTop: 22 }}>
-                <HoursCheck check={data.hoursCheck} userName={selectedUser.firstname} />
+                <HoursCheck check={data.hoursCheck} userName={selectedUser.firstname} cumulative={cumSaldo} />
               </div>
             )}
 
