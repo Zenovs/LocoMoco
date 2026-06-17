@@ -154,6 +154,11 @@ export async function getProjects(
   );
 }
 
+// Projekt-Reports ändern sich nur langsam (Budget vs. gebucht). Lange cachen
+// (4 h), damit "Über Budget" und die firmenweiten Margen nicht alle 20 Min
+// wieder kalt jeden Projekt-Report einzeln nachladen müssen.
+const REPORT_TTL_MS = 4 * 60 * 60 * 1000;
+
 export async function getProjectReport(
   config: MocoConfig,
   projectId: number
@@ -169,7 +174,7 @@ export async function getProjectReport(
       throw new Error(`MOCO API ${res.status}: ${text}`);
     }
     return (await res.json()) as MocoProjectReport;
-  });
+  }, REPORT_TTL_MS);
 }
 
 // Rechnungen. MOCO unterstützt Datumsfilter (date_from/date_to). Wir holen

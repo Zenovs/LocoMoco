@@ -9,9 +9,11 @@ import type { MocoProject, MocoProjectReport } from "@/types/moco";
 export const dynamic = "force-dynamic";
 
 // "Über Budget" getrennt vom Haupt-Dashboard: braucht je Projekt des Mitarbeiters
-// einen Projekt-Report (teuer). So bleibt der Mitarbeiterwechsel schnell, und
-// die Budget-Karte füllt sich kurz danach. Die Monatsaktivitäten kommen aus dem
-// Cache (gleicher Schlüssel wie /api/dashboard) -> kein Doppelabruf.
+// einen Projekt-Report. Diese Reports werden jetzt 4h gecacht (s. getProjectReport)
+// und mit der firmenweiten Auswertung geteilt -> nach dem ersten Laden sofort.
+// Lädt erst NACH dem Dashboard (Frontend), damit der Mitarbeiterwechsel schnell
+// reagiert. Die Monatsaktivitäten kommen aus dem Cache (gleicher Schlüssel wie
+// /api/dashboard) -> kein Doppelabruf.
 export async function GET(req: NextRequest) {
   const config = readConfig();
   if (!config) return NextResponse.json({ error: "Nicht konfiguriert." }, { status: 401 });
