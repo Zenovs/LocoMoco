@@ -24,11 +24,13 @@ export default function CompanySection({
   month,
   refreshTick,
   showCard,
+  hasCap,
 }: {
   year: number;
   month: number;
   refreshTick: number;
   showCard: (key: string) => boolean;
+  hasCap: (cap: string) => boolean;
 }) {
   const companyKeys = [
     "warn.center", "gl.auslastung", "gl.umsatz", "gl.rechnungen", "gl.wip", "gl.vertrieb", "gl.margen",
@@ -36,8 +38,11 @@ export default function CompanySection({
     "kd.wirtschaft", "kd.rangliste",
   ];
   const companyEnabled = companyKeys.some(showCard);
-  const econEnabled = showCard("hr.wirtschaftlichkeit");
-  const liquidityEnabled = showCard("gl.liquiditaet");
+  // Karte freigeschaltet UND die nötige Sicht-Berechtigung vorhanden. So
+  // verschwindet die Karte, wenn die Lohn-/Liquiditäts-Stufe auf "ausblenden"
+  // (keine Ansicht) steht — auch beim Admin.
+  const econEnabled = showCard("hr.wirtschaftlichkeit") && hasCap("data.salary");
+  const liquidityEnabled = showCard("gl.liquiditaet") && hasCap("data.liquidity");
   const anyEnabled = companyEnabled || econEnabled || liquidityEnabled;
 
   const [data, setData] = useState<CompanyReport | null>(null);

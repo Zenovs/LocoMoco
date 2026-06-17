@@ -333,7 +333,7 @@ export default function AdminPage() {
                         })}
                       </div>
 
-                      {/* Sensible Bereiche: 3-Stufen-Schalter pro Person */}
+                      {/* Sensible Bereiche: 3-Stufen-Schalter pro Person (auch für Admin) */}
                       <div style={{ marginTop: 14, paddingTop: 12, borderTop: "1.5px dashed var(--chip-border)", display: "flex", flexDirection: "column", gap: 10 }}>
                         <span style={labelS}>Sensible Daten für {u.name}</span>
                         {([
@@ -346,25 +346,23 @@ export default function AdminPage() {
                             <div key={row.field} style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                               <span style={{ minWidth: 110, fontWeight: 700, color: "var(--plum)", fontSize: 13 }}>{row.label}</span>
                               {([
-                                { k: "none", t: "keine Ansicht" },
+                                { k: "none", t: "ausblenden" },
                                 { k: "view", t: "nur sehen" },
                                 { k: "edit", t: "sehen & bearbeiten" },
                               ] as const).map((opt) => (
                                 <button
                                   key={opt.k}
                                   className={`chip ${eff === opt.k ? "active" : ""}`}
-                                  style={{ fontSize: 12.5, opacity: builtin ? 0.55 : 1, cursor: builtin ? "not-allowed" : "pointer" }}
-                                  disabled={builtin}
-                                  title={builtin ? "Admin hat immer alle Rechte" : undefined}
+                                  style={{ fontSize: 12.5 }}
                                   onClick={() => patchUser(u.id, { [row.field]: opt.k })}
                                 >
                                   {eff === opt.k ? "✓ " : ""}{opt.t}
                                 </button>
                               ))}
-                              {!builtin && (row.explicit != null
-                                ? <button className="chip" style={{ padding: "3px 10px" }} onClick={() => patchUser(u.id, { [row.field]: null })}>↺ Rolle</button>
-                                : <span style={{ fontSize: 11, color: "var(--plum-soft)", fontWeight: 600 }}>(aus Rolle „{roleOf(u)?.name ?? u.role}")</span>
-                              )}
+                              {row.explicit != null
+                                ? <button className="chip" style={{ padding: "3px 10px" }} onClick={() => patchUser(u.id, { [row.field]: null })} title={builtin ? "zurück auf Admin-Standard (alles)" : "zurück auf Rollen-Vorgabe"}>↺ {builtin ? "Standard" : "Rolle"}</button>
+                                : <span style={{ fontSize: 11, color: "var(--plum-soft)", fontWeight: 600 }}>{builtin ? "(Admin-Standard: alles)" : `(aus Rolle „${roleOf(u)?.name ?? u.role}")`}</span>
+                              }
                             </div>
                           );
                         })}

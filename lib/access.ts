@@ -22,10 +22,10 @@ export async function currentUser(req: NextRequest): Promise<User | null> {
 
 export function userCapabilities(user: User): string[] {
   const role = findRole(user.role);
-  // Der geschützte Admin hat IMMER alle Freigaben (auch neu hinzugekommene).
-  if (role?.builtin) return [...ALL_CAPABILITIES];
-
-  const caps = new Set(role?.capabilities ?? []);
+  // Der geschützte Admin hat grundsätzlich ALLE Freigaben (auch neu
+  // hinzugekommene) — die Lohn-/Liquiditäts-Stufe unten kann er aber auch für
+  // sich selbst einschränken (nur sehen / ausblenden).
+  const caps = new Set<string>(role?.builtin ? [...ALL_CAPABILITIES] : (role?.capabilities ?? []));
   // Pro-Person-Überschreibung: ist eine Stufe gesetzt, ersetzt sie die
   // Rollen-Vorgabe für die jeweiligen Lohn-/Liquiditäts-Rechte.
   if (user.salaryAccess != null) {
@@ -49,7 +49,6 @@ export function userCards(user: User): string[] {
 }
 
 export function hasCapability(user: User, cap: string): boolean {
-  if (findRole(user.role)?.builtin) return true; // Admin: alles
   return userCapabilities(user).includes(cap);
 }
 

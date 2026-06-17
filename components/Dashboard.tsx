@@ -501,7 +501,7 @@ export default function Dashboard() {
         )}
 
         {/* Firmenweite Auswertungen (nur mit "Alle sehen" / data.all freigeschaltet) */}
-        <CompanySection year={year} month={month} refreshTick={refreshTick} showCard={showCard} />
+        <CompanySection year={year} month={month} refreshTick={refreshTick} showCard={showCard} hasCap={(c) => !auth.enabled || auth.caps.includes(c)} />
 
         <footer style={{ textAlign: "center", marginTop: 40, color: "var(--plum-soft)", fontWeight: 600, fontSize: 13 }}>
           made with 💅 by <span style={{ color: "var(--hotpink)" }}>wireon</span> · Daten live aus MOCO
