@@ -19,6 +19,8 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
     active?: boolean;
     password?: string;
     allowedCards?: string[] | null;
+    salaryAccess?: "none" | "view" | "edit" | null;
+    liquidityAccess?: "none" | "view" | "edit" | null;
   };
   try {
     b = await req.json();
@@ -38,6 +40,14 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
   if ("allowedCards" in b) {
     // null = wieder „Default" (Admin sieht alles, andere nichts); Array = individuell
     patch.allowedCards = b.allowedCards == null ? undefined : b.allowedCards.filter((c) => ALL_CARDS.includes(c));
+  }
+  const LEVELS = ["none", "view", "edit"];
+  if ("salaryAccess" in b) {
+    // null = zurück auf Rollen-Vorgabe; sonst die gewählte Stufe
+    patch.salaryAccess = b.salaryAccess != null && LEVELS.includes(b.salaryAccess) ? b.salaryAccess : undefined;
+  }
+  if ("liquidityAccess" in b) {
+    patch.liquidityAccess = b.liquidityAccess != null && LEVELS.includes(b.liquidityAccess) ? b.liquidityAccess : undefined;
   }
   if (b.password) {
     if (b.password.length < 6) return NextResponse.json({ error: "Passwort min. 6 Zeichen." }, { status: 400 });

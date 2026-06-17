@@ -8,6 +8,11 @@ import { randomUUID } from "crypto";
 const DIR = path.join(process.env.HOME ?? "/tmp", ".loco-moco");
 const FILE = path.join(DIR, "users.json");
 
+// Zugriffsstufe pro Person für sensible Bereiche (Löhne, Liquidität).
+// "none" = keine Ansicht, "view" = nur sehen, "edit" = sehen & bearbeiten.
+// undefined = Vorgabe der Rolle gilt.
+export type AccessLevel = "none" | "view" | "edit";
+
 export interface User {
   id: string;
   username: string; // Login (eindeutig)
@@ -17,6 +22,9 @@ export interface User {
   theme?: string; // pro Person zugewiesenes Theme
   allowedCards?: string[]; // sichtbare Dashboard-Karten (leer/undefined = Standard)
   mocoUserId?: number; // Verknüpfung zur MOCO-Person (für "eigene Daten")
+  // Pro-Person-Überschreibung der Lohn-/Liquiditäts-Rechte (überstimmt die Rolle).
+  salaryAccess?: AccessLevel;
+  liquidityAccess?: AccessLevel;
   active: boolean;
   createdAt: string;
 }

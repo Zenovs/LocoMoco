@@ -4,7 +4,8 @@ import { useEffect, useState, useCallback } from "react";
 
 interface Role { key: string; name: string; builtin?: boolean; capabilities: string[]; cards: string[]; }
 interface Cap { key: string; label: string; }
-interface PublicUser { id: string; username: string; name: string; role: string; theme?: string; mocoUserId?: number; active: boolean; allowedCards?: string[]; }
+type AccessLevel = "none" | "view" | "edit";
+interface PublicUser { id: string; username: string; name: string; role: string; theme?: string; mocoUserId?: number; active: boolean; allowedCards?: string[]; salaryAccess?: AccessLevel; liquidityAccess?: AccessLevel; }
 interface MocoPerson { id: number; name: string; }
 
 const THEMES = [
@@ -131,6 +132,16 @@ export default function AdminPage() {
   const roleOf = (u: PublicUser) => roles.find((r) => r.key === u.role);
   const effCards = (u: PublicUser) => u.allowedCards ?? (roleOf(u)?.builtin ? cardKeys : []);
   const hasOverride = (u: PublicUser) => u.allowedCards != null;
+  // Effektive Zugriffsstufe (explizit pro Person, sonst aus der Rolle abgeleitet).
+  const effAccess = (u: PublicUser, explicit: AccessLevel | undefined, viewCap: string, editCap: string): AccessLevel => {
+    if (explicit) return explicit;
+    const r = roleOf(u);
+    if (r?.builtin) return "edit";
+    const caps = r?.capabilities ?? [];
+    if (caps.includes(editCap)) return "edit";
+    if (caps.includes(viewCap)) return "view";
+    return "none";
+  };
 
   const load = useCallback(async () => {
     // Eigene Freigaben holen — bestimmt sichtbare Tabs.
@@ -318,6 +329,43 @@ export default function AdminPage() {
                             >
                               {on ? "✓ " : ""}{c.label}
                             </button>
+                          );
+                        })}
+                      </div>
+
+                      {/* Sensible Bereiche: 3-Stufen-Schalter pro Person */}
+                      <div style={{ marginTop: 14, paddingTop: 12, borderTop: "1.5px dashed var(--chip-border)", display: "flex", flexDirection: "column", gap: 10 }}>
+                        <span style={labelS}>Sensible Daten für {u.name}</span>
+                        {([
+                          { label: "💰 Löhne", field: "salaryAccess", view: "data.salary", edit: "salary.manage", explicit: u.salaryAccess },
+                          { label: "💧 Liquidität", field: "liquidityAccess", view: "data.liquidity", edit: "liquidity.manage", explicit: u.liquidityAccess },
+                        ] as const).map((row) => {
+                          const builtin = !!roleOf(u)?.builtin;
+                          const eff = effAccess(u, row.explicit, row.view, row.edit);
+                          return (
+                            <div key={row.field} style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                              <span style={{ minWidth: 110, fontWeight: 700, color: "var(--plum)", fontSize: 13 }}>{row.label}</span>
+                              {([
+                                { k: "none", t: "keine Ansicht" },
+                                { k: "view", t: "nur sehen" },
+                                { k: "edit", t: "sehen & bearbeiten" },
+                              ] as const).map((opt) => (
+                                <button
+                                  key={opt.k}
+                                  className={`chip ${eff === opt.k ? "active" : ""}`}
+                                  style={{ fontSize: 12.5, opacity: builtin ? 0.55 : 1, cursor: builtin ? "not-allowed" : "pointer" }}
+                                  disabled={builtin}
+                                  title={builtin ? "Admin hat immer alle Rechte" : undefined}
+                                  onClick={() => patchUser(u.id, { [row.field]: opt.k })}
+                                >
+                                  {eff === opt.k ? "✓ " : ""}{opt.t}
+                                </button>
+                              ))}
+                              {!builtin && (row.explicit != null
+                                ? <button className="chip" style={{ padding: "3px 10px" }} onClick={() => patchUser(u.id, { [row.field]: null })}>↺ Rolle</button>
+                                : <span style={{ fontSize: 11, color: "var(--plum-soft)", fontWeight: 600 }}>(aus Rolle „{roleOf(u)?.name ?? u.role}")</span>
+                              )}
+                            </div>
                           );
                         })}
                       </div>
