@@ -6,7 +6,7 @@ import { useIcon } from "./ThemeContext";
 
 interface Entry { date: string; task: string; description: string; hours: number; billable: boolean }
 interface Person { name: string; totalHours: number; billableHours: number; entries: Entry[] }
-interface TaskSum { name: string; budget: number | null; actual: number }
+interface TaskSum { name: string; actual: number }
 type Detail = { loading: boolean; people: Person[]; tasks?: TaskSum[]; overBudgetSince?: string | null; overBeforeWindow?: boolean; from?: string };
 
 interface Props {
@@ -15,6 +15,9 @@ interface Props {
 
 function fmtDay(iso: string) {
   return new Date(iso + "T00:00:00").toLocaleDateString("de-CH", { weekday: "short", day: "numeric", month: "short" });
+}
+function fmtChf(v: number) {
+  return new Intl.NumberFormat("de-CH", { maximumFractionDigits: 0 }).format(Math.round(v)) + " CHF";
 }
 
 export default function OverBudgetList({ projects }: Props) {
@@ -70,8 +73,15 @@ export default function OverBudgetList({ projects }: Props) {
                       </span>
                     </div>
                   </div>
-                  <div style={{ fontFamily: "var(--font-heading)", fontWeight: 700, fontSize: 15, color: "#e63970", background: "#fff", padding: "7px 12px", borderRadius: 999, whiteSpace: "nowrap", boxShadow: "0 4px 12px -4px rgba(230,57,112,.5)" }}>
-                    +{p.hoursOver}h
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 5 }}>
+                    <div style={{ fontFamily: "var(--font-heading)", fontWeight: 700, fontSize: 15, color: "#e63970", background: "#fff", padding: "7px 12px", borderRadius: 999, whiteSpace: "nowrap", boxShadow: "0 4px 12px -4px rgba(230,57,112,.5)" }}>
+                      +{p.hoursOver}h
+                    </div>
+                    {p.moneyOver != null && p.moneyOver > 0 && (
+                      <div style={{ fontFamily: "var(--font-heading)", fontWeight: 800, fontSize: 13, color: "#fff", background: "linear-gradient(135deg,#e63970,#c0145a)", padding: "5px 11px", borderRadius: 999, whiteSpace: "nowrap" }}>
+                        +{fmtChf(p.moneyOver)}
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -99,26 +109,30 @@ export default function OverBudgetList({ projects }: Props) {
                           <span><b style={{ fontFamily: "var(--font-heading)", fontSize: 18, color: "#c0145a" }}>+{p.hoursOver} h</b> <span style={{ fontSize: 11.5, color: "var(--plum-soft)", fontWeight: 600 }}>über ({p.progressPct}%)</span></span>
                         </div>
 
-                        {/* Vorgabe vs. gebucht pro Aufgabe */}
+                        {/* Geld-Budget (CHF), falls vorhanden */}
+                        {p.moneyOver != null && p.moneyBudget != null && p.moneySpent != null && (
+                          <div style={{ display: "flex", gap: 22, flexWrap: "wrap", background: "#fff0f5", border: "1.5px solid #ffd0e6", borderRadius: 12, padding: "11px 15px" }}>
+                            <span><b style={{ fontFamily: "var(--font-heading)", fontSize: 18, color: "var(--periwinkle)" }}>{fmtChf(p.moneyBudget)}</b> <span style={{ fontSize: 11.5, color: "var(--plum-soft)", fontWeight: 600 }}>Budget</span></span>
+                            <span><b style={{ fontFamily: "var(--font-heading)", fontSize: 18, color: "var(--plum)" }}>{fmtChf(p.moneySpent)}</b> <span style={{ fontSize: 11.5, color: "var(--plum-soft)", fontWeight: 600 }}>verbraucht</span></span>
+                            <span><b style={{ fontFamily: "var(--font-heading)", fontSize: 18, color: "#c0145a" }}>+{fmtChf(p.moneyOver)}</b> <span style={{ fontSize: 11.5, color: "var(--plum-soft)", fontWeight: 600 }}>über Budget</span></span>
+                          </div>
+                        )}
+
+                        {/* Gebuchte Stunden pro Aufgabe */}
                         {det.tasks && det.tasks.length > 0 && (
                           <div>
-                            <span style={{ fontSize: 11, color: "var(--plum-soft)", fontWeight: 700 }}>Pro Aufgabe — Vorgabe vs. gebucht</span>
+                            <span style={{ fontSize: 11, color: "var(--plum-soft)", fontWeight: 700 }}>Gebuchte Stunden pro Aufgabe (letzte 12 Monate)</span>
                             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5, marginTop: 6 }}>
-                              <thead><tr>{["Aufgabe", "Vorgabe", "gebucht", ""].map((h, i) => (
+                              <thead><tr>{["Aufgabe", "gebucht"].map((h, i) => (
                                 <th key={i} style={{ textAlign: i === 0 ? "left" : "right", padding: "5px 8px", fontSize: 10.5, fontWeight: 800, textTransform: "uppercase", color: "var(--plum-soft)", borderBottom: "1.5px solid var(--bar-bg)" }}>{h}</th>
                               ))}</tr></thead>
                               <tbody>
-                                {det.tasks.map((t, ti) => {
-                                  const over = t.budget != null && t.actual > t.budget;
-                                  return (
-                                    <tr key={ti}>
-                                      <td style={{ padding: "6px 8px", fontWeight: 600, color: "var(--plum)" }}>{t.name}</td>
-                                      <td style={{ padding: "6px 8px", textAlign: "right", color: "var(--plum-soft)", fontWeight: 700 }}>{t.budget != null ? `${t.budget} h` : "—"}</td>
-                                      <td style={{ padding: "6px 8px", textAlign: "right", fontWeight: 800, color: over ? "#c0145a" : "var(--plum)" }}>{t.actual} h</td>
-                                      <td style={{ padding: "6px 8px", textAlign: "right", fontWeight: 800, color: "#c0145a", whiteSpace: "nowrap" }}>{over ? `+${Math.round((t.actual - (t.budget ?? 0)) * 10) / 10} h` : ""}</td>
-                                    </tr>
-                                  );
-                                })}
+                                {det.tasks.map((t, ti) => (
+                                  <tr key={ti}>
+                                    <td style={{ padding: "6px 8px", fontWeight: 600, color: "var(--plum)" }}>{t.name}</td>
+                                    <td style={{ padding: "6px 8px", textAlign: "right", fontWeight: 800, color: "var(--plum)" }}>{t.actual} h</td>
+                                  </tr>
+                                ))}
                               </tbody>
                             </table>
                           </div>
