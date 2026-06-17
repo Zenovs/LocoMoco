@@ -33,7 +33,9 @@ export async function GET(req: NextRequest) {
     const planned = Number(req.nextUrl.searchParams.get("planned") || 0);
     const lifetimeTotal = Number(req.nextUrl.searchParams.get("total") || 0);
 
-    const from = toISODate(subtractDays(new Date(), 365));
+    // Weit zurück (5 Jahre), damit der Über-Budget-Zeitpunkt sichtbar wird und
+    // die Buchungen davor (innerhalb der Vorgabe) grün bleiben.
+    const from = toISODate(subtractDays(new Date(), 1825));
     const to = toISODate(new Date());
     const activities = await getActivitiesByProject(config, projectId, from, to);
 
