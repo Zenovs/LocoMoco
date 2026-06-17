@@ -165,9 +165,12 @@ export async function getProjectReport(
 ): Promise<MocoProjectReport> {
   const key = `project-report:${config.subdomain}:${projectId}`;
   return cachedFetch(key, async () => {
+    // Niedrige Priorität: viele Reports auf einmal dürfen die UI-kritischen
+    // Calls (Mitarbeiterliste, Dashboard) NICHT verdrängen.
     const res = await throttledFetch(
       `${baseUrl(config.subdomain)}/projects/${projectId}/report`,
-      { headers: headers(config.apiKey) }
+      { headers: headers(config.apiKey) },
+      { lowPriority: true }
     );
     if (!res.ok) {
       const text = await res.text();
