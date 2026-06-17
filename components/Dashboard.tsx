@@ -168,30 +168,36 @@ export default function Dashboard() {
   useEffect(() => { loadDashboard(); }, [loadDashboard, refreshTick]);
 
   // "Über Budget" separat laden (teure Projekt-Reports) — nur wenn freigeschaltet.
+  // WICHTIG: erst NACHDEM das Dashboard fertig geladen ist (data gesetzt, nicht
+  // mehr loading). Sonst konkurrieren die vielen Projekt-Report-Abrufe mit dem
+  // blockierenden Dashboard-Call und der Mitarbeiterwechsel fühlt sich zäh an.
   useEffect(() => {
     if (!selectedUserId) return;
     if (auth.enabled && !auth.cards.includes("overBudget")) { setOverBudget([]); return; }
-    let cancelled = false;
     setOverBudget(null);
+    if (loading || !data) return; // warten, bis das Dashboard steht
+    let cancelled = false;
     fetch(`/api/overbudget?userId=${selectedUserId}&year=${year}&month=${month}`)
       .then((r) => r.json())
       .then((d: { overBudget?: OverBudgetProject[] }) => { if (!cancelled) setOverBudget(d.overBudget ?? []); })
       .catch(() => { if (!cancelled) setOverBudget([]); });
     return () => { cancelled = true; };
-  }, [selectedUserId, year, month, refreshTick, auth.enabled, auth.cards]);
+  }, [selectedUserId, year, month, refreshTick, auth.enabled, auth.cards, loading, data]);
 
   // Kumuliertes Saldo (seit Jahresbeginn) — nur wenn Erfassungs-Check sichtbar.
+  // Ebenfalls erst nach dem Dashboard-Load (Jan→heute ist ein schwerer Abruf).
   useEffect(() => {
     if (!selectedUserId) return;
     if (auth.enabled && !auth.cards.includes("hoursCheck")) { setCumSaldo(null); return; }
-    let cancelled = false;
     setCumSaldo(null);
+    if (loading || !data) return; // warten, bis das Dashboard steht
+    let cancelled = false;
     fetch(`/api/saldo?userId=${selectedUserId}&year=${year}&month=${month}`)
       .then((r) => r.json())
       .then((d: SaldoResult & { error?: string }) => { if (!cancelled && !d.error) setCumSaldo(d); })
       .catch(() => {});
     return () => { cancelled = true; };
-  }, [selectedUserId, year, month, refreshTick, auth.enabled, auth.cards]);
+  }, [selectedUserId, year, month, refreshTick, auth.enabled, auth.cards, loading, data]);
 
   // Schläferprojekte separat laden (global). Nur, wenn die Karte freigegeben ist
   // (sonst liefert /api/sleeping ohnehin 403).
