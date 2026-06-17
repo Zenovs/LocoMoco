@@ -27,10 +27,28 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  try {
+    // Budget (geplante Stunden) + Lebenszeit-Gesamtstunden aus der Liste, um den
+    // Über-Budget-Zeitpunkt korrekt zu bestimmen (auch wenn er vor dem Fenster lag).
+    const planned = Number(req.nextUrl.searchParams.get("planned") || 0);
+    const lifetimeTotal = Number(req.nextUrl.searchParams.get("total") || 0);
+
     const from = toISODate(subtractDays(new Date(), 365));
     const to = toISODate(new Date());
     const activities = await getActivitiesByProject(config, projectId, from, to);
+
+    // Über-Budget-Zeitpunkt: chronologisch ALLE (auch fremde) Buchungen, kumuliert.
+    // Startwert = Lebenszeit-Gesamt minus die Summe im Fenster (= Stunden davor).
+    const windowedSum = activities.reduce((s, a) => s + a.hours, 0);
+    const startBefore = Math.max(0, lifetimeTotal - windowedSum);
+    const overBeforeWindow = planned > 0 && startBefore >= planned;
+    let overBudgetSince: string | null = null;
+    if (planned > 0 && !overBeforeWindow) {
+      let running = startBefore;
+      for (const a of [...activities].sort((x, y) => x.date.localeCompare(y.date))) {
+        running += a.hours;
+        if (running >= planned) { overBudgetSince = a.date; break; }
+      }
+    }
 
     const byUser = new Map<number, { name: string; total: number; billable: number; entries: { date: string; task: string; description: string; hours: number; billable: boolean }[] }>();
     for (const a of activities) {
@@ -57,7 +75,7 @@ export async function GET(req: NextRequest) {
       }))
       .sort((a, b) => b.totalHours - a.totalHours);
 
-    return NextResponse.json({ people, from, to });
+    return NextResponse.json({ people, from, to, overBudgetSince, overBeforeWindow });
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Unbekannter Fehler.";
     return NextResponse.json({ error: msg }, { status: 502 });

@@ -6,7 +6,7 @@ import { useIcon } from "./ThemeContext";
 
 interface Entry { date: string; task: string; description: string; hours: number; billable: boolean }
 interface Person { name: string; totalHours: number; billableHours: number; entries: Entry[] }
-type Detail = { loading: boolean; people: Person[] };
+type Detail = { loading: boolean; people: Person[]; overBudgetSince?: string | null; overBeforeWindow?: boolean; from?: string };
 
 interface Props {
   projects: OverBudgetProject[];
@@ -21,15 +21,16 @@ export default function OverBudgetList({ projects }: Props) {
   const [open, setOpen] = useState<number | null>(null);
   const [details, setDetails] = useState<Record<number, Detail>>({});
 
-  function toggle(projectId: number) {
-    const isOpen = open === projectId;
-    setOpen(isOpen ? null : projectId);
-    if (!isOpen && !details[projectId]) {
-      setDetails((d) => ({ ...d, [projectId]: { loading: true, people: [] } }));
-      fetch(`/api/project-activities?projectId=${projectId}`)
+  function toggle(p: OverBudgetProject) {
+    const isOpen = open === p.projectId;
+    setOpen(isOpen ? null : p.projectId);
+    if (!isOpen && !details[p.projectId]) {
+      setDetails((d) => ({ ...d, [p.projectId]: { loading: true, people: [] } }));
+      fetch(`/api/project-activities?projectId=${p.projectId}&planned=${p.hoursPlanned}&total=${p.hoursTotal}`)
         .then((r) => r.json())
-        .then((d: { people?: Person[] }) => setDetails((prev) => ({ ...prev, [projectId]: { loading: false, people: d.people ?? [] } })))
-        .catch(() => setDetails((prev) => ({ ...prev, [projectId]: { loading: false, people: [] } })));
+        .then((d: { people?: Person[]; overBudgetSince?: string | null; overBeforeWindow?: boolean; from?: string }) =>
+          setDetails((prev) => ({ ...prev, [p.projectId]: { loading: false, people: d.people ?? [], overBudgetSince: d.overBudgetSince, overBeforeWindow: d.overBeforeWindow, from: d.from } })))
+        .catch(() => setDetails((prev) => ({ ...prev, [p.projectId]: { loading: false, people: [] } })));
     }
   }
 
@@ -54,7 +55,7 @@ export default function OverBudgetList({ projects }: Props) {
             return (
               <div key={p.projectId} style={{ borderRadius: 16, background: "rgba(255,236,245,.7)", border: "1.5px solid #ffd0e6", overflow: "hidden" }}>
                 <div
-                  onClick={() => toggle(p.projectId)}
+                  onClick={() => toggle(p)}
                   role="button"
                   aria-expanded={isOpen}
                   style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "13px 14px", cursor: "pointer" }}
@@ -81,25 +82,35 @@ export default function OverBudgetList({ projects }: Props) {
                       <span style={{ fontSize: 12.5, color: "var(--plum-soft)", fontWeight: 600 }}>Keine Buchungen im letzten Jahr (oder keine Berechtigung).</span>
                     ) : (
                       <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                        <span style={{ fontSize: 11, color: "var(--plum-soft)", fontWeight: 700 }}>Buchungen der letzten 12 Monate</span>
+                        <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+                          <span style={{ fontSize: 11, color: "var(--plum-soft)", fontWeight: 700 }}>Buchungen der letzten 12 Monate</span>
+                          {(det.overBudgetSince || det.overBeforeWindow) && (
+                            <span style={{ fontSize: 11.5, fontWeight: 800, color: "#c0145a", background: "#fff0f5", border: "1.5px solid #ffd0e6", borderRadius: 999, padding: "2px 9px" }}>
+                              🔴 Über Budget {det.overBeforeWindow ? `(schon vor ${det.from ? fmtDay(det.from) : "12 Mt."})` : `seit ${det.overBudgetSince ? fmtDay(det.overBudgetSince) : ""}`}
+                            </span>
+                          )}
+                        </div>
                         {det.people.map((person, pi) => (
                           <div key={pi}>
                             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 6 }}>
                               <b style={{ fontSize: 13.5, color: "var(--plum)" }}>{person.name}</b>
                               <span style={{ fontSize: 12.5, fontWeight: 800, color: "var(--hotpink)" }}>{person.totalHours} h <span style={{ fontSize: 11, fontWeight: 600, color: "var(--plum-soft)" }}>({person.billableHours} h verr.)</span></span>
                             </div>
-                            <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-                              {person.entries.map((e, ei) => (
-                                <div key={ei} style={{ display: "flex", gap: 9, alignItems: "flex-start", fontSize: 12.5 }}>
-                                  <span style={{ width: 7, height: 7, borderRadius: 7, marginTop: 5, flexShrink: 0, background: e.billable ? "#0a8a4a" : "#c97a00" }} title={e.billable ? "verrechenbar" : "intern"} />
-                                  <span style={{ fontWeight: 700, color: "var(--plum-soft)", whiteSpace: "nowrap", minWidth: 70 }}>{fmtDay(e.date)}</span>
-                                  <span style={{ flex: 1, fontWeight: 600, color: "var(--plum)" }}>
-                                    {e.task && <span style={{ color: "var(--plum-soft)" }}>{e.task}: </span>}
-                                    {e.description || <span style={{ fontStyle: "italic", color: "var(--plum-soft)" }}>ohne Beschreibung</span>}
-                                  </span>
-                                  <span style={{ fontWeight: 800, color: "var(--hotpink)", whiteSpace: "nowrap" }}>{e.hours} h</span>
-                                </div>
-                              ))}
+                            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                              {person.entries.map((e, ei) => {
+                                const over = !!det.overBeforeWindow || (!!det.overBudgetSince && e.date >= det.overBudgetSince);
+                                return (
+                                  <div key={ei} style={{ display: "flex", gap: 9, alignItems: "flex-start", fontSize: 12.5, background: over ? "#fff0f5" : "transparent", borderRadius: 8, padding: over ? "3px 6px" : "0 6px" }}>
+                                    <span style={{ width: 7, height: 7, borderRadius: 7, marginTop: 5, flexShrink: 0, background: e.billable ? "#0a8a4a" : "#c97a00" }} title={e.billable ? "verrechenbar" : "intern"} />
+                                    <span style={{ fontWeight: 700, color: over ? "#c0145a" : "var(--plum-soft)", whiteSpace: "nowrap", minWidth: 70 }}>{fmtDay(e.date)}</span>
+                                    <span style={{ flex: 1, fontWeight: 600, color: over ? "#c0145a" : "var(--plum)" }}>
+                                      {e.task && <span style={{ opacity: 0.8 }}>{e.task}: </span>}
+                                      {e.description || <span style={{ fontStyle: "italic", opacity: 0.7 }}>ohne Beschreibung</span>}
+                                    </span>
+                                    <span style={{ fontWeight: 800, color: over ? "#c0145a" : "var(--hotpink)", whiteSpace: "nowrap" }}>{e.hours} h</span>
+                                  </div>
+                                );
+                              })}
                             </div>
                           </div>
                         ))}
